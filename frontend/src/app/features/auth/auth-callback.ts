@@ -40,10 +40,14 @@ export class AuthCallback {
     try {
       const suite = await this.auth.completeSignIn();
       await this.router.navigateByUrl(suite);
-    } catch {
-      // Le détail vient de Keycloak et n'aide pas l'utilisateur ; il est
-      // dans la console du navigateur pour qui débogue.
-      this.error.set('Le fournisseur d\'identité a refusé la connexion.');
+    } catch (cause) {
+      // Le message destiné à l'utilisateur reste court, mais la cause est
+      // journalisée : l'avoir avalée a déjà coûté un aller-retour de
+      // diagnostic, alors que le log de Keycloak disait tout.
+      console.error('Échec de l\'échange du code contre un jeton.', cause);
+
+      const detail = cause instanceof Error ? cause.message : String(cause);
+      this.error.set(`Le fournisseur d'identité a refusé la connexion : ${detail}`);
     }
   }
 }

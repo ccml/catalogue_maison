@@ -12,13 +12,37 @@ Le realm est importé au démarrage du conteneur
 docker compose -f docker/docker-compose.yml restart keycloak
 ```
 
-L'import ne recharge un realm déjà présent que si le conteneur est recréé.
-Pour repartir d'un realm propre :
+L'import ne recharge **pas** un realm déjà présent : un simple `restart` ne
+suffit donc pas après avoir modifié ce fichier. Il faut recréer le conteneur,
+ce que fait :
 
 ```bash
-docker compose -f docker/docker-compose.yml down keycloak
-docker compose -f docker/docker-compose.yml up -d keycloak
+tools/dev.sh keycloak-reimport
 ```
+
+Keycloak tourne en `start-dev`, donc sur une base en mémoire : recréer le
+conteneur repart d'un realm propre, et les comptes de développement sont
+recréés par l'import.
+
+## Piège : `clientScopes` remplace les scopes intégrés
+
+À l'import, déclarer un tableau `clientScopes` **remplace** l'ensemble des
+client scopes intégrés de Keycloak au lieu de s'y ajouter. Un export qui ne
+listerait que les scopes maison partirait donc sans `profile`, `email`,
+`roles`, `web-origins`, `acr` ni `basic`.
+
+Les symptômes ne désignent pas la cause :
+
+- Keycloak refuse l'autorisation avec `Invalid scopes: openid profile email`,
+  et redirige vers l'application avec une erreur — côté frontend, on ne voit
+  qu'un échec de l'échange du code.
+- Plus insidieux encore si le frontend ne demandait pas ces scopes : le jeton
+  serait émis **sans `realm_access`**, donc sans aucun rôle, et l'API
+  rejetterait en 403 des comptes pourtant correctement configurés.
+
+C'est pourquoi ce fichier contient les six scopes intégrés en entier. Leurs
+définitions ont été relevées sur le realm `master` d'une instance neuve, et
+non écrites à la main. **Ne pas les retirer** en les croyant redondants.
 
 ## Ce que contient le realm
 

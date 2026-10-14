@@ -24,6 +24,7 @@ Usage: tools/dev.sh <commande>
   migration <nom> Génère une migration EF
   provision <nom> Crée le schéma d'un ménage et y applique les migrations
   migrate-all     Applique les migrations à tous les schémas de ménage
+  keycloak-reimport  Recrée Keycloak pour réimporter le realm
   api             Démarre Catalogue.Api sur http://localhost:5080
   front           Compile le frontend et lance ses tests
   front-start     Démarre le frontend en développement
@@ -89,6 +90,11 @@ case "${1:-}" in
       CATALOGUE_TENANT="$tenant" run dotnet ef database update --project "$API" || { status=1; break; }
     done < <(households)
     exit "$status"
+    ;;
+  keycloak-reimport)
+    # Un restart ne réimporte pas un realm déjà présent : il faut recréer le
+    # conteneur. Keycloak tourne en start-dev, sur une base en mémoire.
+    run $COMPOSE rm -sf keycloak && run $COMPOSE up -d keycloak
     ;;
   api)           run dotnet run --project "$API" ;;
   front-install) run bash -c "cd '$ROOT/frontend' && npm install" ;;
