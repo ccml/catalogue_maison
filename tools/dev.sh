@@ -22,6 +22,7 @@ Usage: tools/dev.sh <commande>
   test            Lance les tests (nécessite Docker : Testcontainers)
   all             restore, puis build, puis test
   migration <nom> Génère une migration EF
+  provision <nom> Crée le schéma d'un ménage et y applique les migrations
   migrate-all     Applique les migrations à tous les schémas de ménage
   versions        Affiche les versions des outils installés
 USAGE
@@ -61,6 +62,18 @@ case "${1:-}" in
   migration)
     [ -n "${2:-}" ] || { echo "Nom de migration manquant." | tee -a "$LOG"; exit 2; }
     run dotnet ef migrations add "$2" --project "$API" --output-dir Infrastructure/Persistence/Migrations
+    ;;
+  provision)
+    # Créer un ménage = créer son schéma, puis y jouer toutes les migrations.
+    # Idempotent : rejouable sans effet de bord.
+    [ -n "${2:-}" ] || { echo "Nom de ménage manquant." | tee -a "$LOG"; exit 2; }
+    case "$2" in
+      [a-z][a-z0-9_]*) : ;;
+      *) echo "Nom de ménage invalide : « $2 » (minuscules, chiffres, underscore)." | tee -a "$LOG"; exit 2 ;;
+    esac
+    run $COMPOSE exec -T postgres psql -U maison -d catalogue -v ON_ERROR_STOP=1 \
+        -c "create schema if not exists \"$2\" authorization maison" \
+      && CATALOGUE_TENANT="$2" run dotnet ef database update --project "$API"
     ;;
   migrate-all)
     # Une migration en retard est un incident : on s'arrête au premier échec

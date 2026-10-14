@@ -5,7 +5,6 @@ using Catalogue.Api.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Catalogue.Api.Infrastructure;
@@ -82,18 +81,18 @@ public static class CatalogueApiRegistration
             options.FallbackPolicy = options.GetPolicy(Policies.HouseholdMember);
         });
 
+        services.AddSingleton<TenantConnectionStringFactory>();
+        services.AddSingleton<SchemaVersionRegistry>();
+
         services.AddDbContext<CatalogueDbContext>((serviceProvider, options) =>
         {
             var tenant = serviceProvider.GetRequiredService<TenantId>();
-
-            var connectionString = configuration.GetConnectionString("Catalogue")
-                ?? throw new InvalidOperationException("Chaîne de connexion « Catalogue » absente.");
+            var connectionStrings = serviceProvider.GetRequiredService<TenantConnectionStringFactory>();
 
             options
-                .UseNpgsql(connectionString, npgsql => npgsql
-                    .MigrationsHistoryTable(CatalogueDbContext.MigrationsHistoryTable, tenant.Value))
-                .UseSnakeCaseNamingConvention()
-                .ReplaceService<IModelCacheKeyFactory, TenantModelCacheKeyFactory>();
+                .UseNpgsql(connectionStrings.For(tenant), npgsql => npgsql
+                    .MigrationsHistoryTable(CatalogueDbContext.MigrationsHistoryTable))
+                .UseSnakeCaseNamingConvention();
         });
 
         services.AddProblemDetails();
@@ -107,6 +106,7 @@ public static class CatalogueApiRegistration
         app.UseStatusCodePages();
         app.UseAuthentication();
         app.UseMiddleware<TenantResolutionMiddleware>();
+        app.UseMiddleware<SchemaVersionMiddleware>();
         app.UseAuthorization();
 
         return app;

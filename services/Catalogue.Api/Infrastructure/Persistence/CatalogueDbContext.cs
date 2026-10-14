@@ -8,6 +8,14 @@ namespace Catalogue.Api.Infrastructure.Persistence;
 /// Contexte du catalogue d'<strong>un</strong> ménage. Il ne peut pas être
 /// construit sans ménage résolu : c'est la garantie que rien ne s'exécute
 /// hors d'un schéma désigné.
+/// <para>
+/// Le modèle ne déclare aucun schéma : celui du ménage vient du
+/// <c>search_path</c> de la chaîne de connexion
+/// (<see cref="TenantConnectionStringFactory"/>), afin que les migrations
+/// restent rejouables sur tous les schémas. Le schéma <c>public</c> est
+/// volontairement vide, pour qu'un <c>search_path</c> mal résolu échoue
+/// bruyamment plutôt que de servir des données d'un autre ménage.
+/// </para>
 /// </summary>
 public sealed class CatalogueDbContext : DbContext
 {
@@ -25,12 +33,6 @@ public sealed class CatalogueDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Le schéma EST la frontière entre ménages. Il est porté par le
-        // modèle, donc inscrit dans chaque requête SQL émise — et non par
-        // l'état de la connexion, qui se partage dans le pool et se
-        // réinitialise sans prévenir.
-        modelBuilder.HasDefaultSchema(Tenant.Value);
-
         var media = modelBuilder.Entity<Media>();
 
         media.ToTable("medias");

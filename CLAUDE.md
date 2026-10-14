@@ -148,10 +148,33 @@ savoir à quel ménage il a affaire, et continue de servir même si
 `Tenants.Api` est indisponible. Ne pas « corriger » cela en ajoutant un
 lookup par requête — ce serait revenir sur un choix délibéré.
 
-Le `DbContext` résout son **schéma** (`search_path`) par requête, à partir
-du tenant résolu (service scoped) — une seule chaîne de connexion, donc un
-seul pool, contrairement à une base par ménage. **Aucun `DbContext` ne doit pouvoir être construit
-sans tenant résolu**, hors chemin d'administration explicite.
+Le `DbContext` résout son **schéma** par requête, à partir du tenant résolu
+(service scoped). **Aucun `DbContext` ne doit pouvoir être construit sans
+tenant résolu**, hors chemin d'administration explicite — concrètement,
+obtenir un contexte exige de résoudre un `TenantId`, qui échoue en l'absence
+de claim exploitable.
+
+Le schéma est porté par le **`search_path` de la chaîne de connexion**, et
+non déclaré dans le modèle EF (`HasDefaultSchema`). Ce point a été tranché à
+l'usage, et dans ce sens précis :
+
+- Une migration générée depuis un modèle à schéma explicite inscrit ce nom de
+  schéma **en dur** dans le fichier généré. La rejouer sur un autre ménage
+  créerait les tables dans le schéma d'origine — la règle « rejouer toute
+  migration sur tous les schémas » devient alors inapplicable. Le modèle ne
+  doit donc déclarer **aucun schéma**.
+- Le `search_path` placé dans la chaîne de connexion n'est pas de l'état de
+  connexion mutable : chaque chaîne a son pool, et une connexion de ce pool
+  ne peut pas changer de ménage. Ce serait faux d'un `SET search_path` émis
+  après l'ouverture, qui se perdrait au recyclage de la connexion. **Ne pas**
+  résoudre le ménage de cette façon.
+
+Prix assumé : **un pool par ménage**, et non un seul. Négligeable à l'échelle
+d'un foyer, à réexaminer avec un grand nombre de ménages.
+
+Le schéma `public` reste **vide** et ne contient aucune table métier : un
+`search_path` mal résolu doit échouer bruyamment plutôt que de servir
+silencieusement les données d'un autre ménage.
 
 ### Provisioning et migrations
 
@@ -163,9 +186,12 @@ C'est le coût du schéma-par-ménage, à assumer dès le départ :
 - La configuration du realm (clients, mappers, rôles) est **versionnée dans
   `/keycloak`** et importable. Aucune configuration cliquée à la main qui ne
   soit pas reflétée dans le dépôt.
-- Toute migration EF doit être rejouée sur **tous** les schémas. Prévoir une
-  commande qui itère sur le registre des ménages ; ne jamais migrer un
-  schéma à la main.
+- Toute migration EF doit être rejouée sur **tous** les schémas. En attendant
+  que `Tenants.Api` tienne le registre, `tools/dev.sh provision <ménage>`
+  crée un schéma et y applique les migrations, et `tools/dev.sh migrate-all`
+  itère sur les schémas existants. Ne jamais migrer un schéma à la main.
+  L'opération s'arrête au premier échec, plutôt que de laisser les ménages
+  dans des états différents.
 - Un schéma en retard de migration est un incident : le service doit refuser
   de servir un ménage dont le schéma n'est pas à la version attendue, plutôt
   que d'échouer au hasard des requêtes.

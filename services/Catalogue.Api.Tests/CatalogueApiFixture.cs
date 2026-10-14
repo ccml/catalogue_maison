@@ -8,9 +8,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -20,13 +19,25 @@ namespace Catalogue.Api.Tests;
 /// Monte l'API contre un PostgreSQL réel et provisionne deux ménages. Un
 /// faux dépôt en mémoire ne prouverait rien de l'isolation : elle est portée
 /// par le schéma, donc par la base.
+/// <para>
+/// Le provisionnement emprunte le même chemin qu'en production — créer le
+/// schéma, puis y appliquer les migrations — et non un raccourci de création
+/// de tables depuis le modèle. C'est ce qui permet aux tests de valider la
+/// garde sur la version du schéma.
+/// </para>
 /// </summary>
 public sealed class CatalogueApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    /// <summary>Ménages provisionnés pour les tests.</summary>
+    /// <summary>Ménages provisionnés : schéma créé et migrations appliquées.</summary>
     public const string HouseholdA = "martin";
 
     public const string HouseholdB = "durand";
+
+    /// <summary>
+    /// Ménage dont le jeton est valide mais dont le schéma n'a jamais été
+    /// provisionné. Sert à vérifier que le service refuse de le servir.
+    /// </summary>
+    public const string HouseholdWithoutSchema = "sans_schema";
 
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17")
         .WithDatabase("catalogue")
@@ -46,13 +57,29 @@ public sealed class CatalogueApiFixture : WebApplicationFactory<Program>, IAsync
 
         foreach (var tenant in new[] { HouseholdA, HouseholdB })
         {
-            await using var db = BuildContext(tenant);
-
-            // CreateTables, et non EnsureCreated : plusieurs schémas vivent
-            // dans la même base, et EnsureCreated ne crée rien dès lors que
-            // la base existe déjà.
-            await db.GetService<IRelationalDatabaseCreator>().CreateTablesAsync();
+            await ProvisionAsync(tenant);
         }
+    }
+
+    /// <summary>
+    /// Crée le schéma d'un ménage et y applique les migrations. Idempotent.
+    /// </summary>
+    public async Task ProvisionAsync(string tenant)
+    {
+        var tenantId = TenantId.Create(tenant);
+
+        await using (var connection = new NpgsqlConnection(_postgres.GetConnectionString()))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            // Le nom a passé la validation de TenantId ; la citation protège
+            // du repli en minuscules de PostgreSQL.
+            command.CommandText = $"CREATE SCHEMA IF NOT EXISTS \"{tenantId.Value}\"";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await using var db = BuildContext(tenantId);
+        await db.Database.MigrateAsync();
     }
 
     /// <summary>Client HTTP porteur d'un jeton valide pour le ménage demandé.</summary>
@@ -74,6 +101,8 @@ public sealed class CatalogueApiFixture : WebApplicationFactory<Program>, IAsync
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // La chaîne de base ne porte pas de search_path : c'est
+        // TenantConnectionStringFactory qui l'ajoute, par ménage.
         builder.UseSetting("ConnectionStrings:Catalogue", _postgres.GetConnectionString());
         builder.UseSetting("Keycloak:Authority", TestTokens.Issuer);
         builder.UseSetting("Keycloak:Audience", TestTokens.Audience);
@@ -95,16 +124,20 @@ public sealed class CatalogueApiFixture : WebApplicationFactory<Program>, IAsync
         });
     }
 
-    private CatalogueDbContext BuildContext(string tenant)
+    private CatalogueDbContext BuildContext(TenantId tenant)
     {
+        var connectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())
+        {
+            SearchPath = tenant.Value
+        }.ConnectionString;
+
         var options = new DbContextOptionsBuilder<CatalogueDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString(), npgsql => npgsql
-                .MigrationsHistoryTable(CatalogueDbContext.MigrationsHistoryTable, tenant))
+            .UseNpgsql(connectionString, npgsql => npgsql
+                .MigrationsHistoryTable(CatalogueDbContext.MigrationsHistoryTable))
             .UseSnakeCaseNamingConvention()
-            .ReplaceService<IModelCacheKeyFactory, TenantModelCacheKeyFactory>()
             .Options;
 
-        return new CatalogueDbContext(options, TenantId.Create(tenant));
+        return new CatalogueDbContext(options, tenant);
     }
 
     async Task IAsyncLifetime.DisposeAsync()
