@@ -55,6 +55,19 @@ public sealed class TenantIsolationTests(CatalogueApiFixture fixture) : IClassFi
         var scan = await menageB.GetAsync($"/medias/by-isbn/{IsbnNormalise}");
         Assert.Equal(HttpStatusCode.NotFound, scan.StatusCode);
 
+        // 4. Ni en écriture : l'isolation doit couvrir la correction et la
+        // suppression, pas seulement la lecture.
+        var correction = await menageB.PutAsJsonAsync($"/medias/{livre!.Id}", new UpdateMediaRequest(
+            MediaType.Book, "Titre imposé depuis un autre ménage"), CatalogueApiFixture.Json);
+        Assert.Equal(HttpStatusCode.NotFound, correction.StatusCode);
+
+        var suppression = await menageB.DeleteAsync($"/medias/{livre.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, suppression.StatusCode);
+
+        var prete = await menageB.PutAsJsonAsync($"/medias/{livre.Id}/lent", new SetLentRequest(true),
+            CatalogueApiFixture.Json);
+        Assert.Equal(HttpStatusCode.NotFound, prete.StatusCode);
+
         // Contrôle : les trois mêmes chemins aboutissent chez le ménage A,
         // sinon le test ne prouverait que l'absence de données.
         var rechercheA = await menageA.GetFromJsonAsync<PagedResponse<MediaSummaryResponse>>(
@@ -62,8 +75,11 @@ public sealed class TenantIsolationTests(CatalogueApiFixture fixture) : IClassFi
         Assert.NotNull(rechercheA);
         Assert.Single(rechercheA.Items);
 
-        var accesDirectA = await menageA.GetAsync($"/medias/{livre.Id}");
-        Assert.Equal(HttpStatusCode.OK, accesDirectA.StatusCode);
+        var accesDirectA = await menageA.GetFromJsonAsync<MediaDetailResponse>(
+            $"/medias/{livre.Id}", CatalogueApiFixture.Json);
+        Assert.NotNull(accesDirectA);
+        Assert.Equal("Le Horla", accesDirectA!.Title);
+        Assert.False(accesDirectA.IsLent);
 
         var scanA = await menageA.GetAsync($"/medias/by-isbn/{IsbnNormalise}");
         Assert.Equal(HttpStatusCode.OK, scanA.StatusCode);

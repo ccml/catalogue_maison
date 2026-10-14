@@ -45,6 +45,37 @@ public sealed record BookSpecifics : MediaSpecifics
     }
 }
 
+/// <summary>
+/// Une BD se range par <strong>série et tome</strong> : c'est ainsi qu'on
+/// cherche à savoir si on possède déjà un album. Le scénariste vit dans la
+/// colonne commune <c>Creator</c>, qui porte le même rôle sémantique pour
+/// tous les types ; le dessinateur, propre à la BD, est ici.
+/// </summary>
+public sealed record ComicBookSpecifics : MediaSpecifics
+{
+    public string? Series { get; init; }
+    public int? Volume { get; init; }
+    public string? Illustrator { get; init; }
+    public string? Publisher { get; init; }
+    public string? Isbn { get; init; }
+
+    [JsonIgnore]
+    public override MediaType AppliesTo => MediaType.ComicBook;
+
+    public override IEnumerable<string> Validate()
+    {
+        if (Isbn is not null && Isbn.Length > 0 && !IsbnFormat.IsWellFormed(Isbn))
+        {
+            yield return "L'ISBN doit comporter 10 ou 13 caractères significatifs.";
+        }
+
+        if (Volume is <= 0)
+        {
+            yield return "Le numéro de tome doit être strictement positif.";
+        }
+    }
+}
+
 public sealed record MusicSpecifics : MediaSpecifics
 {
     public string? Label { get; init; }

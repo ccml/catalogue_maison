@@ -28,7 +28,8 @@ legend {
 }
 
 input,
-select {
+select,
+textarea {
   background: var(--paper-raised);
   border: 1px solid var(--shelf);
   border-radius: 2px;
@@ -93,6 +94,58 @@ button[type='submit']:hover:not(:disabled) {
 button[type='submit']:disabled {
   cursor: progress;
   opacity: 0.7;
+}
+
+textarea {
+  resize: vertical;
+  font-family: var(--sans);
+}
+
+/* La suppression est séparée du formulaire : ce n'est pas une variante de
+   l'enregistrement, et elle ne se confirme qu'en deux gestes. */
+.suppression {
+  max-width: 34rem;
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--shelf);
+}
+
+.suppression p {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  margin: 0 0 1rem;
+}
+
+.suppression .actions {
+  margin-top: 0;
+}
+
+button.danger {
+  background: var(--ochre);
+  color: var(--paper-raised);
+  border: 0;
+  border-radius: 2px;
+  padding: 0.55rem 1.3rem;
+  cursor: pointer;
+}
+
+button.danger:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+button.discret {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink-soft);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+button.discret:hover {
+  color: var(--ochre);
 }
 
 @media (max-width: 30rem) {

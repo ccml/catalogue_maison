@@ -64,7 +64,15 @@ public sealed class CatalogueDbContext : DbContext
              .HasMaxLength(20)
              .HasComputedColumnSql("specifics ->> 'isbn'", stored: true);
 
+        // Promotion de la série : c'est par elle qu'on cherche une BD, bien
+        // avant le titre de l'album. Même mécanisme que l'ISBN.
+        media.Property(m => m.Series)
+             .HasColumnName("series")
+             .HasMaxLength(256)
+             .HasComputedColumnSql("specifics ->> 'series'", stored: true);
+
         media.HasIndex(m => m.Isbn);
+        media.HasIndex(m => m.Series);
         media.HasIndex(m => m.Type);
         media.HasIndex(m => m.AddedAt);
     }

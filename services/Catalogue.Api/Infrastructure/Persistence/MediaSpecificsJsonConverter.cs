@@ -35,6 +35,7 @@ public sealed class MediaSpecificsJsonConverter : JsonConverter<MediaSpecifics>
     private static readonly (string Discriminator, Type Type)[] Mapping =
     [
         ("book", typeof(BookSpecifics)),
+        ("comic", typeof(ComicBookSpecifics)),
         ("music", typeof(MusicSpecifics)),
         ("film", typeof(FilmSpecifics)),
         ("game", typeof(GameSpecifics))

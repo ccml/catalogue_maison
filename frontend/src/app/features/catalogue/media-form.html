@@ -1,5 +1,15 @@
-<h1>Ajouter un média</h1>
-<p class="lede">Le type et le titre suffisent. Le reste peut attendre.</p>
+<h1>{{ correction() ? 'Corriger la fiche' : 'Ajouter un média' }}</h1>
+<p class="lede">
+  @if (correction()) {
+    Le type se change aussi : un album de BD pris pour un livre se corrige ici.
+  } @else {
+    Le type et le titre suffisent. Le reste peut attendre.
+  }
+</p>
+
+@if (loading()) {
+  <p class="lede">Lecture de la fiche…</p>
+}
 
 <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
   <div class="field">
@@ -66,6 +76,32 @@
           </div>
         </div>
       }
+      @case ('ComicBook') {
+        <div class="pair">
+          <div class="field">
+            <label for="serie">Série</label>
+            <input id="serie" type="text" formControlName="series" placeholder="Blacksad" />
+          </div>
+          <div class="field">
+            <label for="tome">Tome</label>
+            <input id="tome" type="text" inputmode="numeric" formControlName="volume" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="dessinateur">Dessinateur</label>
+          <input id="dessinateur" type="text" formControlName="illustrator" />
+        </div>
+        <div class="pair">
+          <div class="field">
+            <label for="editeur-bd">Éditeur</label>
+            <input id="editeur-bd" type="text" formControlName="publisher" />
+          </div>
+          <div class="field">
+            <label for="isbn-bd">ISBN</label>
+            <input id="isbn-bd" type="text" inputmode="numeric" formControlName="isbn" />
+          </div>
+        </div>
+      }
       @case ('Music') {
         <div class="pair">
           <div class="field">
@@ -76,6 +112,10 @@
             <label for="format">Format</label>
             <input id="format" type="text" formControlName="format" placeholder="Vinyle, CD" />
           </div>
+        </div>
+        <div class="field">
+          <label for="pistes">Pistes, une par ligne</label>
+          <textarea id="pistes" rows="4" formControlName="tracks"></textarea>
         </div>
       }
       @case ('Film') {
@@ -113,14 +153,32 @@
     }
   </fieldset>
 
-  @if (error()) {
-    <p class="notice-problem" role="alert">{{ error() }}</p>
+  @if (probleme()) {
+    <p class="notice-problem" role="alert">{{ probleme() }}</p>
   }
 
   <div class="actions">
-    <button type="submit" [disabled]="saving()">
+    <button type="submit" [disabled]="saving() || removing()">
       {{ saving() ? 'Enregistrement' : 'Enregistrer' }}
     </button>
     <a routerLink="/catalogue">Annuler</a>
   </div>
 </form>
+
+@if (correction()) {
+  <section class="suppression">
+    @if (suppressionDemandee()) {
+      <p>Cette fiche sera définitivement retirée du catalogue. Il n'y a pas de corbeille.</p>
+      <div class="actions">
+        <button type="button" class="danger" (click)="supprime()" [disabled]="removing()">
+          {{ removing() ? 'Suppression' : 'Supprimer définitivement' }}
+        </button>
+        <button type="button" class="discret" (click)="annuleSuppression()">Annuler</button>
+      </div>
+    } @else {
+      <button type="button" class="discret" (click)="demandeSuppression()">
+        Supprimer cette fiche
+      </button>
+    }
+  </section>
+}

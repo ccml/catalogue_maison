@@ -56,7 +56,11 @@
       @for (media of items(); track media.id) {
         <li class="item" [attr.data-type]="media.type">
           <div class="item-main">
-            <span class="work">{{ media.title }}</span>
+            @if (auth.mayWrite()) {
+              <a class="work" [routerLink]="['/catalogue', media.id]">{{ media.title }}</a>
+            } @else {
+              <span class="work">{{ media.title }}</span>
+            }
             <span class="attribution">{{ attribution(media) }}</span>
           </div>
 

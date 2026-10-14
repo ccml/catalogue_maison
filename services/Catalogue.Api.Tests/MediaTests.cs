@@ -61,6 +61,28 @@ public sealed class MediaTests
     }
 
     [Fact]
+    public void Un_tome_negatif_est_refuse()
+    {
+        var exception = Assert.Throws<MediaValidationException>(
+            () => Media.Create(MediaType.ComicBook, "Astérix le Gaulois", "René Goscinny", 1961, null,
+                new ComicBookSpecifics { Series = "Astérix", Volume = 0 }, Maintenant));
+
+        Assert.Single(exception.Errors);
+    }
+
+    [Fact]
+    public void Des_specificites_de_livre_sont_refusees_pour_une_bd()
+    {
+        // Les deux types se ressemblent — raison de plus pour que le
+        // discriminant soit vérifié.
+        var exception = Assert.Throws<MediaValidationException>(
+            () => Media.Create(MediaType.ComicBook, "Astérix le Gaulois", null, null, null,
+                new BookSpecifics { Isbn = "9782012101333" }, Maintenant));
+
+        Assert.Single(exception.Errors);
+    }
+
+    [Fact]
     public void Une_annee_hors_bornes_est_refusee()
     {
         var exception = Assert.Throws<MediaValidationException>(

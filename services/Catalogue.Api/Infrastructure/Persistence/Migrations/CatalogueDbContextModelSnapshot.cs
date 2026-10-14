@@ -54,6 +54,13 @@ namespace Catalogue.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("location");
 
+                    b.Property<string>("Series")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("series")
+                        .HasComputedColumnSql("specifics ->> 'series'", true);
+
                     b.Property<string>("Specifics")
                         .HasColumnType("jsonb")
                         .HasColumnName("specifics");
@@ -82,6 +89,9 @@ namespace Catalogue.Api.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Isbn")
                         .HasDatabaseName("ix_medias_isbn");
+
+                    b.HasIndex("Series")
+                        .HasDatabaseName("ix_medias_series");
 
                     b.HasIndex("Type")
                         .HasDatabaseName("ix_medias_type");

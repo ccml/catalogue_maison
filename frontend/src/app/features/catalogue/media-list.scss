@@ -101,6 +101,7 @@ input[type='search'] {
 /* Le liseré code le type. C'est le seul endroit où la couleur porte une
    information de classement. */
 .item[data-type='Book'] { border-left-color: var(--type-book); }
+.item[data-type='ComicBook'] { border-left-color: var(--type-comic); }
 .item[data-type='Music'] { border-left-color: var(--type-music); }
 .item[data-type='Film'] { border-left-color: var(--type-film); }
 .item[data-type='Game'] { border-left-color: var(--type-game); }
@@ -116,6 +117,14 @@ input[type='search'] {
 .work {
   font-family: var(--serif);
   font-size: 1.0625rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.work:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--shelf);
 }
 
 .attribution {

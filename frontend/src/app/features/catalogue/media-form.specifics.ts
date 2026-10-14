@@ -5,8 +5,13 @@ export interface SpecificsFields {
   readonly isbn: string;
   readonly publisher: string;
   readonly pages: number | null;
+  readonly series: string;
+  readonly volume: number | null;
+  readonly illustrator: string;
   readonly label: string;
   readonly format: string;
+  /** Une piste par ligne. */
+  readonly tracks: string;
   readonly studio: string;
   readonly durationMinutes: number | null;
   readonly support: string;
@@ -37,10 +42,28 @@ export function buildSpecifics(type: MediaType, fields: SpecificsFields): MediaS
         : { type: 'book', isbn, publisher, pages };
     }
 
+    case 'ComicBook': {
+      const series = text(fields.series);
+      const volume = number(fields.volume);
+      const illustrator = text(fields.illustrator);
+      const publisher = text(fields.publisher);
+      const isbn = text(fields.isbn);
+      return series === null &&
+        volume === null &&
+        illustrator === null &&
+        publisher === null &&
+        isbn === null
+        ? null
+        : { type: 'comic', series, volume, illustrator, publisher, isbn };
+    }
+
     case 'Music': {
       const label = text(fields.label);
       const format = text(fields.format);
-      return label === null && format === null ? null : { type: 'music', label, format };
+      const tracks = parseLines(fields.tracks);
+      return label === null && format === null && tracks.length === 0
+        ? null
+        : { type: 'music', label, format, tracks };
     }
 
     case 'Film': {
@@ -86,4 +109,88 @@ export function parseNumber(value: string): number | null {
 
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** Une piste par ligne, les lignes vides ignorées. */
+export function parseLines(value: string): readonly string[] {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+const champsVides: SpecificsFields = {
+  isbn: '',
+  publisher: '',
+  pages: null,
+  series: '',
+  volume: null,
+  illustrator: '',
+  label: '',
+  format: '',
+  tracks: '',
+  studio: '',
+  durationMinutes: null,
+  support: '',
+  platform: '',
+  minPlayers: null,
+  maxPlayers: null,
+};
+
+/**
+ * Remplit les champs du formulaire depuis des spécificités existantes.
+ *
+ * C'est la réciproque de {@link buildSpecifics}, et elle doit le rester : un
+ * champ présent en base mais absent d'ici serait **effacé** à la première
+ * correction de la fiche, sans que rien ne le signale. L'aller-retour est
+ * testé pour cette raison.
+ */
+export function specificsToFields(specifics: MediaSpecifics | null): SpecificsFields {
+  if (specifics === null) {
+    return champsVides;
+  }
+
+  switch (specifics.type) {
+    case 'book':
+      return {
+        ...champsVides,
+        isbn: specifics.isbn ?? '',
+        publisher: specifics.publisher ?? '',
+        pages: specifics.pages ?? null,
+      };
+
+    case 'comic':
+      return {
+        ...champsVides,
+        series: specifics.series ?? '',
+        volume: specifics.volume ?? null,
+        illustrator: specifics.illustrator ?? '',
+        publisher: specifics.publisher ?? '',
+        isbn: specifics.isbn ?? '',
+      };
+
+    case 'music':
+      return {
+        ...champsVides,
+        label: specifics.label ?? '',
+        format: specifics.format ?? '',
+        tracks: (specifics.tracks ?? []).join('\n'),
+      };
+
+    case 'film':
+      return {
+        ...champsVides,
+        studio: specifics.studio ?? '',
+        durationMinutes: specifics.durationMinutes ?? null,
+        support: specifics.support ?? '',
+      };
+
+    case 'game':
+      return {
+        ...champsVides,
+        platform: specifics.platform ?? '',
+        minPlayers: specifics.minPlayers ?? null,
+        maxPlayers: specifics.maxPlayers ?? null,
+      };
+  }
 }

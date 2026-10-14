@@ -38,6 +38,18 @@ public sealed record CreateMediaRequest(
     string? Location = null,
     MediaSpecifics? Specifics = null);
 
+/// <summary>
+/// Correction d'une fiche existante. Le <see cref="Type"/> en fait partie :
+/// prendre un album de BD pour un livre doit se réparer sans resaisir.
+/// </summary>
+public sealed record UpdateMediaRequest(
+    MediaType Type,
+    string? Title,
+    string? Creator = null,
+    int? Year = null,
+    string? Location = null,
+    MediaSpecifics? Specifics = null);
+
 public sealed record SetLentRequest(bool IsLent);
 
 public sealed record PagedResponse<T>(IReadOnlyList<T> Items, int Total, int Page, int Size);

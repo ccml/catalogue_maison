@@ -4,7 +4,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 import { CatalogueApi } from '../../core/api/catalogue-api.service';
 import { describeHttpError, type ApiProblem } from '../../core/api/http-error';
-import { mediaTypeLabels, type MediaSummary, type MediaType } from '../../core/api/media.models';
+import {
+  mediaTypeLabels,
+  mediaTypes,
+  type MediaSummary,
+  type MediaType,
+} from '../../core/api/media.models';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
@@ -36,7 +41,7 @@ export class MediaList implements OnInit {
     return probleme !== null && probleme.terminal ? probleme : null;
   });
 
-  protected readonly types: readonly MediaType[] = ['Book', 'Music', 'Film', 'Game'];
+  protected readonly types = mediaTypes;
   protected readonly labels = mediaTypeLabels;
 
   constructor() {

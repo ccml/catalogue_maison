@@ -10,5 +10,7 @@ public enum MediaType
     Book = 1,
     Music = 2,
     Film = 3,
-    Game = 4
+    Game = 4,
+    /// <summary>Bande dessinée, album de BD, manga, roman graphique.</summary>
+    ComicBook = 5
 }

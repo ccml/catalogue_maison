@@ -247,7 +247,7 @@ chez B.
 ## Modèle de média
 
 Le catalogue est unifié : une seule table `Medias`, une seule entité `Media`
-avec un discriminant `Type` (`Livre`, `Musique`, `Film`, ...).
+avec un discriminant `Type` (`Livre`, `BD`, `Musique`, `Film`, `Jeu`, ...).
 
 Le modèle est **hybride** — ne pas tout basculer d'un côté ou de l'autre :
 
@@ -267,9 +267,12 @@ Conséquences à respecter :
 - PostgreSQL ne valide pas la forme du `jsonb` : celle des `Specificites`
   est garantie **côté C#**, par un type par média et une validation à
   l'entrée. Aucune écriture directe de JSON brut.
-- Un champ JSON qui devient un critère de recherche fréquent (l'ISBN en
-  premier) est **promu en colonne générée indexée**, sans réécrire les
-  données :
+- Un champ JSON qui devient un critère de recherche fréquent est **promu en
+  colonne générée indexée**, sans réécrire les données. Deux champs le sont à
+  ce jour : l'**ISBN**, pour le chemin « scan », et la **série** d'une BD,
+  parce qu'on cherche un album par sa série bien avant son titre. La
+  promotion est une migration, mais purement additive — elle ne touche aucune
+  donnée déjà saisie.
 
   ```sql
   ALTER TABLE medias

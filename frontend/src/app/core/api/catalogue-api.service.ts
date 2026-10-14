@@ -8,6 +8,7 @@ import type {
   MediaQuery,
   MediaSummary,
   Paged,
+  UpdateMediaRequest,
 } from './media.models';
 
 /**
@@ -55,6 +56,15 @@ export class CatalogueApi {
 
   create(request: CreateMediaRequest): Observable<MediaDetail> {
     return this.http.post<MediaDetail>(`${this.baseUrl}/medias`, request);
+  }
+
+  update(id: string, request: UpdateMediaRequest): Observable<MediaDetail> {
+    return this.http.put<MediaDetail>(`${this.baseUrl}/medias/${id}`, request);
+  }
+
+  /** Suppression définitive : il n'y a pas de corbeille côté API. */
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/medias/${id}`);
   }
 
   setLent(id: string, isLent: boolean): Observable<void> {

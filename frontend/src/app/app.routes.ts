@@ -16,6 +16,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/catalogue/media-form').then((m) => m.MediaForm),
   },
   {
+    path: 'catalogue/:id',
+    title: 'Corriger une fiche',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/catalogue/media-form').then((m) => m.MediaForm),
+  },
+  {
     path: 'connexion',
     title: 'Connexion',
     loadComponent: () => import('./features/auth/sign-in').then((m) => m.SignIn),

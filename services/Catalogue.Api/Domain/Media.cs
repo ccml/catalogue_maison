@@ -19,7 +19,7 @@ public class Media
 
     public string Title { get; private set; }
 
-    /// <summary>Auteur, réalisateur ou artiste : même rôle sémantique.</summary>
+    /// <summary>Auteur, réalisateur, artiste ou scénariste : même rôle sémantique.</summary>
     public string? Creator { get; private set; }
 
     public int? Year { get; private set; }
@@ -40,6 +40,13 @@ public class Media
     public string? Isbn { get; private set; }
 
     /// <summary>
+    /// Colonne générée depuis <c>specifics -&gt; 'series'</c>, indexée : on
+    /// cherche une BD par sa série avant de la chercher par le titre de
+    /// l'album. Jamais écrite depuis le C#.
+    /// </summary>
+    public string? Series { get; private set; }
+
+    /// <summary>
     /// Crée un média. Seuls le type et le titre sont requis : la saisie
     /// manuelle doit rester possible sans rien connaître d'autre.
     /// </summary>
@@ -52,6 +59,86 @@ public class Media
         string? location,
         MediaSpecifics? specifics,
         DateTimeOffset addedAt)
+    {
+        var cleanTitle = Validate(type, title, year, specifics, addedAt);
+
+        return new Media
+        {
+            Id = Guid.CreateVersion7(),
+            Type = type,
+            Title = cleanTitle,
+            Creator = Blank(creator),
+            Year = year,
+            Location = Blank(location),
+            IsLent = false,
+            Specifics = Canonicalize(specifics),
+            AddedAt = addedAt
+        };
+    }
+
+    /// <summary>
+    /// Corrige une fiche existante, <strong>type compris</strong> : prendre
+    /// un album de BD pour un livre est une erreur de saisie banale, et elle
+    /// doit se réparer sans supprimer puis resaisir. Les spécificités doivent
+    /// alors correspondre au nouveau type.
+    /// <para>
+    /// Ne touche ni à <see cref="AddedAt"/>, qui date l'entrée dans le
+    /// catalogue et non la dernière correction, ni à <see cref="IsLent"/>,
+    /// qui a son propre geste : corriger une fiche ne doit pas faire revenir
+    /// un média prêté.
+    /// </para>
+    /// </summary>
+    /// <exception cref="MediaValidationException">Si la fiche est invalide.</exception>
+    public void Update(
+        MediaType type,
+        string? title,
+        string? creator,
+        int? year,
+        string? location,
+        MediaSpecifics? specifics,
+        DateTimeOffset now)
+    {
+        var cleanTitle = Validate(type, title, year, specifics, now);
+
+        Type = type;
+        Title = cleanTitle;
+        Creator = Blank(creator);
+        Year = year;
+        Location = Blank(location);
+        Specifics = Canonicalize(specifics);
+    }
+
+    /// <summary>Marque le média comme prêté ou revenu.</summary>
+    public void SetLent(bool isLent) => IsLent = isLent;
+
+    /// <summary>
+    /// Remplace les spécificités, par exemple après un enrichissement validé
+    /// par l'utilisateur.
+    /// </summary>
+    /// <exception cref="MediaValidationException">Si la forme est invalide.</exception>
+    public void ReplaceSpecifics(MediaSpecifics? specifics)
+    {
+        List<string> errors = [];
+        CheckSpecifics(Type, specifics, errors);
+
+        if (errors.Count > 0)
+        {
+            throw new MediaValidationException(errors);
+        }
+
+        Specifics = Canonicalize(specifics);
+    }
+
+    /// <summary>
+    /// Valide une fiche et rend son titre nettoyé. Partagée par la création
+    /// et la correction : deux jeux de règles divergeraient.
+    /// </summary>
+    private static string Validate(
+        MediaType type,
+        string? title,
+        int? year,
+        MediaSpecifics? specifics,
+        DateTimeOffset reference)
     {
         List<string> errors = [];
 
@@ -70,66 +157,35 @@ public class Media
             errors.Add("Le type de média est inconnu.");
         }
 
-        if (year is { } y && (y < 1400 || y > addedAt.Year + 1))
+        if (year is { } value && (value < 1400 || value > reference.Year + 1))
         {
             errors.Add("L'année est hors des bornes plausibles.");
         }
 
-        if (specifics is not null)
-        {
-            if (specifics.AppliesTo != type)
-            {
-                errors.Add($"Les spécificités fournies concernent un média de type {specifics.AppliesTo}, pas {type}.");
-            }
-
-            errors.AddRange(specifics.Validate());
-        }
+        CheckSpecifics(type, specifics, errors);
 
         if (errors.Count > 0)
         {
             throw new MediaValidationException(errors);
         }
 
-        return new Media
-        {
-            Id = Guid.CreateVersion7(),
-            Type = type,
-            Title = cleanTitle!,
-            Creator = Blank(creator),
-            Year = year,
-            Location = Blank(location),
-            IsLent = false,
-            Specifics = Canonicalize(specifics),
-            AddedAt = addedAt
-        };
+        return cleanTitle!;
     }
 
-    /// <summary>Marque le média comme prêté ou revenu.</summary>
-    public void SetLent(bool isLent) => IsLent = isLent;
-
-    /// <summary>
-    /// Remplace les spécificités, par exemple après un enrichissement validé
-    /// par l'utilisateur.
-    /// </summary>
-    /// <exception cref="MediaValidationException">Si la forme est invalide.</exception>
-    public void ReplaceSpecifics(MediaSpecifics? specifics)
+    private static void CheckSpecifics(MediaType type, MediaSpecifics? specifics, List<string> errors)
     {
-        if (specifics is not null)
+        if (specifics is null)
         {
-            List<string> errors = [];
-            if (specifics.AppliesTo != Type)
-            {
-                errors.Add($"Les spécificités fournies concernent un média de type {specifics.AppliesTo}, pas {Type}.");
-            }
-
-            errors.AddRange(specifics.Validate());
-            if (errors.Count > 0)
-            {
-                throw new MediaValidationException(errors);
-            }
+            return;
         }
 
-        Specifics = Canonicalize(specifics);
+        if (specifics.AppliesTo != type)
+        {
+            errors.Add(
+                $"Les spécificités fournies concernent un média de type {specifics.AppliesTo}, pas {type}.");
+        }
+
+        errors.AddRange(specifics.Validate());
     }
 
     private static string? Blank(string? value)
@@ -145,6 +201,7 @@ public class Media
     private static MediaSpecifics? Canonicalize(MediaSpecifics? specifics) => specifics switch
     {
         BookSpecifics book => book with { Isbn = IsbnFormat.Normalize(book.Isbn) },
+        ComicBookSpecifics comic => comic with { Isbn = IsbnFormat.Normalize(comic.Isbn) },
         _ => specifics
     };
 }

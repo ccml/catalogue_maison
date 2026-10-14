@@ -49,8 +49,16 @@ households() {
       order by schema_name"
 }
 
-: > "$LOG"
-echo "=== $(date '+%Y-%m-%d %H:%M:%S') — tools/dev.sh ${*:-(sans argument)}" >> "$LOG"
+# Le journal s'accumule plutôt que de s'écraser : lancer deux commandes à la
+# suite ne doit pas effacer le résultat de la première. Les 3000 dernières
+# lignes suffisent à couvrir plusieurs passes.
+if [ -f "$LOG" ]; then
+  tail -n 3000 "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
+fi
+{
+  echo
+  echo "=== $(date '+%Y-%m-%d %H:%M:%S') — tools/dev.sh ${*:-(sans argument)}"
+} >> "$LOG"
 
 case "${1:-}" in
   up)      run $COMPOSE up -d ;;

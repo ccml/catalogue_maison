@@ -5,13 +5,23 @@
  * stockage côté API : il ne se renomme pas d'un côté sans l'autre.
  */
 
-export type MediaType = 'Book' | 'Music' | 'Film' | 'Game';
+export type MediaType = 'Book' | 'ComicBook' | 'Music' | 'Film' | 'Game';
 
 export interface BookSpecifics {
   readonly type: 'book';
   readonly isbn?: string | null;
   readonly publisher?: string | null;
   readonly pages?: number | null;
+}
+
+/** Une BD se range par série et tome : c'est ainsi qu'on la cherche. */
+export interface ComicBookSpecifics {
+  readonly type: 'comic';
+  readonly series?: string | null;
+  readonly volume?: number | null;
+  readonly illustrator?: string | null;
+  readonly publisher?: string | null;
+  readonly isbn?: string | null;
 }
 
 export interface MusicSpecifics {
@@ -35,7 +45,12 @@ export interface GameSpecifics {
   readonly maxPlayers?: number | null;
 }
 
-export type MediaSpecifics = BookSpecifics | MusicSpecifics | FilmSpecifics | GameSpecifics;
+export type MediaSpecifics =
+  | BookSpecifics
+  | ComicBookSpecifics
+  | MusicSpecifics
+  | FilmSpecifics
+  | GameSpecifics;
 
 export interface MediaSummary {
   readonly id: string;
@@ -68,6 +83,12 @@ export interface CreateMediaRequest {
   readonly specifics?: MediaSpecifics | null;
 }
 
+/**
+ * Correction d'une fiche existante. Même forme que la création, y compris le
+ * type : l'API accepte qu'on le change.
+ */
+export type UpdateMediaRequest = CreateMediaRequest;
+
 export interface MediaQuery {
   readonly type?: MediaType | null;
   readonly q?: string | null;
@@ -76,9 +97,16 @@ export interface MediaQuery {
   readonly size?: number;
 }
 
+/**
+ * Les types, dans l'ordre d'affichage. **Source unique** : les déclarer dans
+ * chaque écran garantit qu'un nouveau type sera oublié quelque part.
+ */
+export const mediaTypes: readonly MediaType[] = ['Book', 'ComicBook', 'Music', 'Film', 'Game'];
+
 /** Libellés affichés. Le code reste en anglais, l'interface parle français. */
 export const mediaTypeLabels: Readonly<Record<MediaType, string>> = {
   Book: 'Livre',
+  ComicBook: 'BD',
   Music: 'Musique',
   Film: 'Film',
   Game: 'Jeu',
@@ -89,6 +117,8 @@ export function emptySpecifics(type: MediaType): MediaSpecifics {
   switch (type) {
     case 'Book':
       return { type: 'book' };
+    case 'ComicBook':
+      return { type: 'comic' };
     case 'Music':
       return { type: 'music' };
     case 'Film':

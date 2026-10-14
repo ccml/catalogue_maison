@@ -19,6 +19,8 @@ public static class MediaEndpoints
         group.MapGet("/{id:guid}", GetAsync);
         group.MapGet("/by-isbn/{isbn}", GetByIsbnAsync);
         group.MapPost("/", CreateAsync).RequireAuthorization(Policies.CatalogueWrite);
+        group.MapPut("/{id:guid}", UpdateAsync).RequireAuthorization(Policies.CatalogueWrite);
+        group.MapDelete("/{id:guid}", DeleteAsync).RequireAuthorization(Policies.CatalogueWrite);
         group.MapPut("/{id:guid}/lent", SetLentAsync).RequireAuthorization(Policies.CatalogueWrite);
 
         return group;
@@ -51,9 +53,13 @@ public static class MediaEndpoints
         if (!string.IsNullOrWhiteSpace(q))
         {
             var pattern = $"%{q.Trim()}%";
+            // La série entre dans la recherche : chercher « Blacksad » doit
+            // ramener ses albums, dont le titre ne porte pas forcément le nom
+            // de la série.
             query = query.Where(m =>
                 EF.Functions.ILike(m.Title, pattern) ||
-                (m.Creator != null && EF.Functions.ILike(m.Creator, pattern)));
+                (m.Creator != null && EF.Functions.ILike(m.Creator, pattern)) ||
+                (m.Series != null && EF.Functions.ILike(m.Series, pattern)));
         }
 
         var total = await query.CountAsync(cancellationToken);
@@ -131,6 +137,65 @@ public static class MediaEndpoints
         await db.SaveChangesAsync(cancellationToken);
 
         return TypedResults.Created($"/medias/{media.Id}", ToDetail(media));
+    }
+
+    private static async Task<Results<Ok<MediaDetailResponse>, NotFound, ValidationProblem>> UpdateAsync(
+        Guid id,
+        UpdateMediaRequest request,
+        CatalogueDbContext db,
+        TimeProvider clock,
+        CancellationToken cancellationToken)
+    {
+        // Aucun filtre de ménage : le schéma du contexte est celui du jeton.
+        // Un identifiant d'un autre ménage n'existe pas dans ce schéma, et la
+        // correction se solde donc par un 404 — comme une lecture.
+        var media = await db.Medias.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+        if (media is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        try
+        {
+            media.Update(
+                request.Type,
+                request.Title,
+                request.Creator,
+                request.Year,
+                request.Location,
+                request.Specifics,
+                clock.GetUtcNow());
+        }
+        catch (MediaValidationException exception)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["media"] = [.. exception.Errors]
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.Ok(ToDetail(media));
+    }
+
+    private static async Task<Results<NoContent, NotFound>> DeleteAsync(
+        Guid id,
+        CatalogueDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var media = await db.Medias.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+        if (media is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // Suppression définitive, sans corbeille : un catalogue domestique
+        // n'a pas de cycle de rétention, et une fiche effacée se resaisit.
+        db.Medias.Remove(media);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
     }
 
     private static async Task<Results<NoContent, NotFound>> SetLentAsync(
