@@ -19,7 +19,7 @@ npm-debug.log*
 .DS_Store
 
 # Journaux d'exécution des scripts de développement
-tools/last-run.log
+tools/logs/
 
 # Secrets et configuration locale
 *.local.json

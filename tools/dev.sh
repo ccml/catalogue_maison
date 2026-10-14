@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 #
-# Commandes de développement. Tout passe par ici : la sortie est tracée dans
-# tools/last-run.log, qui est le fichier à relire après un échec.
+# Commandes de développement. Tout passe par ici : chaque commande trace sa
+# sortie dans tools/logs/<commande>.log, qui est le fichier à relire après un
+# échec.
+#
+# Un journal par commande, et non un seul : lancer « all » puis « front » ne
+# doit pas effacer le résultat du premier, et chaque fichier ne contient que
+# la dernière exécution de sa commande — rien à purger.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LOG="$ROOT/tools/last-run.log"
+COMMANDE="${1:-sans-argument}"
+LOGS="$ROOT/tools/logs"
+LOG="$LOGS/$COMMANDE.log"
 COMPOSE="docker compose -f $ROOT/docker/docker-compose.yml"
 SOLUTION="$ROOT/CatalogueMaison.slnx"
 API="$ROOT/services/Catalogue.Api"
@@ -30,6 +37,8 @@ Usage: tools/dev.sh <commande>
   front-start     Démarre le frontend en développement
   front-install   Installe les dépendances du frontend
   versions        Affiche les versions des outils installés
+
+La sortie de chaque commande est tracée dans tools/logs/<commande>.log.
 USAGE
 }
 
@@ -49,16 +58,8 @@ households() {
       order by schema_name"
 }
 
-# Le journal s'accumule plutôt que de s'écraser : lancer deux commandes à la
-# suite ne doit pas effacer le résultat de la première. Les 3000 dernières
-# lignes suffisent à couvrir plusieurs passes.
-if [ -f "$LOG" ]; then
-  tail -n 3000 "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
-fi
-{
-  echo
-  echo "=== $(date '+%Y-%m-%d %H:%M:%S') — tools/dev.sh ${*:-(sans argument)}"
-} >> "$LOG"
+mkdir -p "$LOGS"
+echo "=== $(date '+%Y-%m-%d %H:%M:%S') — tools/dev.sh ${*:-(sans argument)}" > "$LOG"
 
 case "${1:-}" in
   up)      run $COMPOSE up -d ;;
