@@ -107,7 +107,12 @@ case "${1:-}" in
     ;;
   api)           run dotnet run --project "$API" ;;
   front-install) run bash -c "cd '$ROOT/frontend' && npm install" ;;
-  front-start)   run bash -c "cd '$ROOT/frontend' && npm start" ;;
+  front-start)
+    # ng serve lit le clavier (« press h + enter ») : lancé en arrière-plan
+    # depuis un terminal, il serait suspendu par SIGTTIN et resterait à
+    # l'écoute sans jamais répondre. On lui coupe donc l'entrée standard.
+    run bash -c "cd '$ROOT/frontend' && npm start < /dev/null"
+    ;;
   front-build)   run bash -c "cd '$ROOT/frontend' && npm run build" ;;
   front-test)    run bash -c "cd '$ROOT/frontend' && npm run test -- --watch=false" ;;
   front)
