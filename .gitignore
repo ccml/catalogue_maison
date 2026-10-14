@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+artifacts/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+# Outils
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+
+# Journaux d'exécution des scripts de développement
+tools/last-run.log
+
+# Secrets et configuration locale
+*.local.json
+appsettings.Development.local.json
+.env
+.env.*
+!.env.example

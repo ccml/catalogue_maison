@@ -1,0 +1,320 @@
+{
+  "realm": "maison",
+  "enabled": true,
+  "displayName": "CatalogueMaison",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "adulte",
+        "description": "Membre adulte du menage : lecture et ecriture du catalogue"
+      },
+      {
+        "name": "enfant",
+        "description": "Membre enfant du menage : lecture, et emprunt selon les regles du menage"
+      },
+      {
+        "name": "admin-menage",
+        "description": "Administre les membres de son menage"
+      }
+    ]
+  },
+
+  "clientScopes": [
+    {
+      "name": "tenant",
+      "description": "Expose le menage de l'utilisateur dans le claim tenant",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "tenant",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant",
+            "claim.name": "tenant",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true",
+            "multivalued": "false",
+            "aggregate.attrs": "false"
+          }
+        }
+      ]
+    },
+    {
+      "name": "catalogue-api-audience",
+      "description": "Ajoute catalogue-api dans l'audience du jeton",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "catalogue-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "catalogue-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "metadata-api-audience",
+      "description": "Ajoute metadata-api dans l'audience du jeton",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "metadata-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "metadata-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tenants-api-audience",
+      "description": "Ajoute tenants-api dans l'audience du jeton",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "tenants-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "tenants-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+
+  "defaultDefaultClientScopes": [
+    "web-origins",
+    "acr",
+    "profile",
+    "roles",
+    "email",
+    "basic",
+    "tenant"
+  ],
+
+  "clients": [
+    {
+      "clientId": "catalogue-frontend",
+      "name": "Frontend Angular",
+      "description": "Client public. Authorization Code Flow + PKCE S256. Jamais d'Implicit Flow, jamais de secret embarque.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*",
+        "require.pushed.authorization.requests": "false"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email",
+        "basic",
+        "tenant",
+        "catalogue-api-audience"
+      ]
+    },
+    {
+      "clientId": "catalogue-api",
+      "name": "Catalogue.Api",
+      "description": "Service confidentiel. Valide les jetons bearer ; appelle metadata-api en client credentials.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dev-catalogue-api",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "attributes": {
+        "use.refresh.tokens": "false"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email",
+        "basic",
+        "metadata-api-audience"
+      ]
+    },
+    {
+      "clientId": "metadata-api",
+      "name": "Metadata.Api",
+      "description": "Service confidentiel, tenant-agnostique. Appele en service a service, n'initie aucun appel authentifie.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dev-metadata-api",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "tenants-api",
+      "name": "Tenants.Api",
+      "description": "Service confidentiel. Seul client autorise a appeler l'Admin REST API : point d'entree unique de l'administration d'un menage (inversion d'ecriture).",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dev-tenants-api",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "attributes": {
+        "use.refresh.tokens": "false"
+      }
+    }
+  ],
+
+  "users": [
+    {
+      "username": "service-account-tenants-api",
+      "enabled": true,
+      "serviceAccountClientId": "tenants-api",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
+    },
+    {
+      "username": "alice",
+      "email": "alice@example.test",
+      "firstName": "Alice",
+      "lastName": "Martin",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "tenant": ["martin"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["adulte", "admin-menage"]
+    },
+    {
+      "username": "theo",
+      "email": "theo@example.test",
+      "firstName": "Theo",
+      "lastName": "Martin",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "tenant": ["martin"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["enfant"]
+    },
+    {
+      "username": "bruno",
+      "email": "bruno@example.test",
+      "firstName": "Bruno",
+      "lastName": "Durand",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "tenant": ["durand"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["adulte", "admin-menage"]
+    },
+    {
+      "username": "orphelin",
+      "email": "orphelin@example.test",
+      "firstName": "Sans",
+      "lastName": "Menage",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["adulte"]
+    }
+  ]
+}
