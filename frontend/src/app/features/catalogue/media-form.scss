@@ -1,0 +1,102 @@
+h1 {
+  margin: 2.5rem 0 0.5rem;
+}
+
+.lede {
+  color: var(--ink-soft);
+  margin: 0 0 2rem;
+}
+
+form {
+  max-width: 34rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+label,
+legend {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+input,
+select {
+  background: var(--paper-raised);
+  border: 1px solid var(--shelf);
+  border-radius: 2px;
+  padding: 0.45rem 0.6rem;
+  width: 100%;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--ochre);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem;
+}
+
+fieldset {
+  border: 0;
+  border-top: 1px solid var(--shelf);
+  margin: 0.75rem 0 0;
+  padding: 1.1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+legend {
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--ink);
+  padding-inline-end: 0.6rem;
+}
+
+.field-problem,
+.notice-problem {
+  color: var(--ochre);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+}
+
+button[type='submit'] {
+  background: var(--pine);
+  color: var(--paper-raised);
+  border: 0;
+  border-radius: 2px;
+  padding: 0.55rem 1.3rem;
+  cursor: pointer;
+}
+
+button[type='submit']:hover:not(:disabled) {
+  background: var(--ink);
+}
+
+button[type='submit']:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+@media (max-width: 30rem) {
+  .pair {
+    grid-template-columns: 1fr;
+  }
+}

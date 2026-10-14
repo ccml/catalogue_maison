@@ -24,6 +24,10 @@ Usage: tools/dev.sh <commande>
   migration <nom> Génère une migration EF
   provision <nom> Crée le schéma d'un ménage et y applique les migrations
   migrate-all     Applique les migrations à tous les schémas de ménage
+  api             Démarre Catalogue.Api sur http://localhost:5080
+  front           Compile le frontend et lance ses tests
+  front-start     Démarre le frontend en développement
+  front-install   Installe les dépendances du frontend
   versions        Affiche les versions des outils installés
 USAGE
 }
@@ -85,6 +89,15 @@ case "${1:-}" in
       CATALOGUE_TENANT="$tenant" run dotnet ef database update --project "$API" || { status=1; break; }
     done < <(households)
     exit "$status"
+    ;;
+  api)           run dotnet run --project "$API" ;;
+  front-install) run bash -c "cd '$ROOT/frontend' && npm install" ;;
+  front-start)   run bash -c "cd '$ROOT/frontend' && npm start" ;;
+  front-build)   run bash -c "cd '$ROOT/frontend' && npm run build" ;;
+  front-test)    run bash -c "cd '$ROOT/frontend' && npm run test -- --watch=false" ;;
+  front)
+    run bash -c "cd '$ROOT/frontend' && npm run build" \
+      && run bash -c "cd '$ROOT/frontend' && npm run test -- --watch=false"
     ;;
   versions)
     run dotnet --version

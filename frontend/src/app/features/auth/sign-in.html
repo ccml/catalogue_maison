@@ -1,0 +1,13 @@
+<section class="sign-in">
+  <h1>Le catalogue de la maison</h1>
+  <p>
+    Ce que vous possédez à la maison — livres, disques, films, jeux — avec
+    l'endroit où chaque chose est rangée et ce qui est prêté.
+  </p>
+  <button type="button" (click)="signIn()" [disabled]="busy()">
+    {{ busy() ? 'Connexion en cours' : 'Se connecter' }}
+  </button>
+  <p class="aside">
+    Chaque ménage ne voit que son propre catalogue.
+  </p>
+</section>

@@ -1,0 +1,126 @@
+<h1>Ajouter un média</h1>
+<p class="lede">Le type et le titre suffisent. Le reste peut attendre.</p>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="field">
+    <label for="type">Type</label>
+    <select id="type" formControlName="type">
+      @for (mediaType of types; track mediaType) {
+        <option [value]="mediaType">{{ labels[mediaType] }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="titre">Titre</label>
+    <input
+      id="titre"
+      type="text"
+      formControlName="title"
+      [attr.aria-invalid]="titleControl.touched && titleControl.invalid ? 'true' : null"
+    />
+    @if (titleControl.touched && titleControl.hasError('required')) {
+      <p class="field-problem">Indiquez un titre.</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="createur">Auteur, réalisateur ou artiste</label>
+    <input id="createur" type="text" formControlName="creator" />
+  </div>
+
+  <div class="pair">
+    <div class="field">
+      <label for="annee">Année</label>
+      <input id="annee" type="text" inputmode="numeric" formControlName="year" />
+    </div>
+
+    <div class="field">
+      <label for="emplacement">Où est-ce rangé ?</label>
+      <input
+        id="emplacement"
+        type="text"
+        formControlName="location"
+        placeholder="Salon, étagère du haut"
+      />
+    </div>
+  </div>
+
+  <fieldset>
+    <legend>{{ labels[currentType()] }}</legend>
+
+    @switch (currentType()) {
+      @case ('Book') {
+        <div class="field">
+          <label for="isbn">ISBN</label>
+          <input id="isbn" type="text" inputmode="numeric" formControlName="isbn" />
+        </div>
+        <div class="pair">
+          <div class="field">
+            <label for="editeur">Éditeur</label>
+            <input id="editeur" type="text" formControlName="publisher" />
+          </div>
+          <div class="field">
+            <label for="pages">Pages</label>
+            <input id="pages" type="text" inputmode="numeric" formControlName="pages" />
+          </div>
+        </div>
+      }
+      @case ('Music') {
+        <div class="pair">
+          <div class="field">
+            <label for="label">Label</label>
+            <input id="label" type="text" formControlName="label" />
+          </div>
+          <div class="field">
+            <label for="format">Format</label>
+            <input id="format" type="text" formControlName="format" placeholder="Vinyle, CD" />
+          </div>
+        </div>
+      }
+      @case ('Film') {
+        <div class="pair">
+          <div class="field">
+            <label for="studio">Studio</label>
+            <input id="studio" type="text" formControlName="studio" />
+          </div>
+          <div class="field">
+            <label for="duree">Durée en minutes</label>
+            <input id="duree" type="text" inputmode="numeric" formControlName="durationMinutes" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="support">Support</label>
+          <input id="support" type="text" formControlName="support" placeholder="DVD, Blu-ray" />
+        </div>
+      }
+      @case ('Game') {
+        <div class="field">
+          <label for="plateforme">Plateforme ou support</label>
+          <input id="plateforme" type="text" formControlName="platform" />
+        </div>
+        <div class="pair">
+          <div class="field">
+            <label for="joueurs-min">Joueurs au minimum</label>
+            <input id="joueurs-min" type="text" inputmode="numeric" formControlName="minPlayers" />
+          </div>
+          <div class="field">
+            <label for="joueurs-max">Joueurs au maximum</label>
+            <input id="joueurs-max" type="text" inputmode="numeric" formControlName="maxPlayers" />
+          </div>
+        </div>
+      }
+    }
+  </fieldset>
+
+  @if (error()) {
+    <p class="notice-problem" role="alert">{{ error() }}</p>
+  }
+
+  <div class="actions">
+    <button type="submit" [disabled]="saving()">
+      {{ saving() ? 'Enregistrement' : 'Enregistrer' }}
+    </button>
+    <a routerLink="/catalogue">Annuler</a>
+  </div>
+</form>

@@ -1,0 +1,108 @@
+/* Repères visuels du catalogue.
+ *
+ * Le sujet, ce sont des objets physiques posés sur des étagères : la liste
+ * est une suite de tranches alignées, pas une grille de cartes. D'où des
+ * filets de 1px, pas d'ombre portée, et un liseré vertical qui code le type
+ * de média.
+ *
+ * Deux familles, et chacune porte un sens : le serif est réservé aux titres
+ * d'œuvres, le sans à tout ce que dit l'application. L'ocre ne sert qu'à un
+ * seul état, « prêté ». */
+
+:root {
+  --ink: #15211f;
+  --ink-soft: #4a5a56;
+  --paper: #f2f4f1;
+  --paper-raised: #fbfcfa;
+  --shelf: #d4dbd3;
+  --pine: #1f5f4f;
+  --ochre: #a8612a;
+
+  --type-book: #1f5f4f;
+  --type-music: #4a4a86;
+  --type-film: #7a3b52;
+  --type-game: #3f6b2e;
+
+  --sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --serif: "Source Serif 4", ui-serif, Georgia, serif;
+
+  --measure: 68ch;
+  --gap: 1rem;
+  --rhythm: 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e4eae6;
+    --ink-soft: #9aa8a3;
+    --paper: #121715;
+    --paper-raised: #1a2120;
+    --shelf: #2c3734;
+    --pine: #6fbda6;
+    --ochre: #d8975c;
+
+    --type-book: #6fbda6;
+    --type-music: #9a9ad8;
+    --type-film: #cf8ba1;
+    --type-game: #8cc274;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--serif);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0;
+}
+
+h1 { font-size: 1.75rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.25rem; }
+
+a {
+  color: var(--pine);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Un focus toujours visible, au clavier comme à la souris. */
+:focus-visible {
+  outline: 2px solid var(--pine);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Visible des lecteurs d'écran uniquement. */
+.a11y-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

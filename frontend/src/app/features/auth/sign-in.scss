@@ -1,0 +1,38 @@
+.sign-in {
+  max-width: 34rem;
+  padding: 4rem 0 2rem;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  margin-bottom: 1.25rem;
+}
+
+p {
+  color: var(--ink-soft);
+  margin: 0 0 1.75rem;
+  max-width: 44ch;
+}
+
+button {
+  background: var(--pine);
+  color: var(--paper-raised);
+  border: 0;
+  border-radius: 2px;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--ink);
+}
+
+button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.aside {
+  font-size: 0.875rem;
+  margin: 1.75rem 0 0;
+}

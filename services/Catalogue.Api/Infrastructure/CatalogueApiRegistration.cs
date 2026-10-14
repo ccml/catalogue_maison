@@ -95,6 +95,16 @@ public static class CatalogueApiRegistration
                 .UseSnakeCaseNamingConvention();
         });
 
+        // Le frontend est servi depuis une autre origine. La liste est
+        // configurée, et vide par défaut : aucune origine n'est autorisée
+        // tant qu'elle n'a pas été déclarée.
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+        services.AddCors(options => options.AddDefaultPolicy(policy => policy
+            .WithOrigins(allowedOrigins)
+            .WithHeaders("Authorization", "Content-Type")
+            .WithMethods("GET", "POST", "PUT", "DELETE")));
+
         services.AddProblemDetails();
 
         return services;
@@ -104,6 +114,7 @@ public static class CatalogueApiRegistration
     {
         app.UseExceptionHandler();
         app.UseStatusCodePages();
+        app.UseCors();
         app.UseAuthentication();
         app.UseMiddleware<TenantResolutionMiddleware>();
         app.UseMiddleware<SchemaVersionMiddleware>();

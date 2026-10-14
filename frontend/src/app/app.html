@@ -1,0 +1,25 @@
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="wordmark" routerLink="/catalogue">Catalogue maison</a>
+
+    @if (auth.isAuthenticated()) {
+      <nav>
+        <a routerLink="/catalogue" routerLinkActive="current" [routerLinkActiveOptions]="{ exact: true }">
+          Tout le catalogue
+        </a>
+        @if (auth.mayWrite()) {
+          <a routerLink="/catalogue/ajouter" routerLinkActive="current">Ajouter</a>
+        }
+      </nav>
+
+      <div class="who">
+        <span>{{ auth.displayName() }}</span>
+        <button type="button" (click)="auth.signOut()">Se déconnecter</button>
+      </div>
+    }
+  </div>
+</header>
+
+<main>
+  <router-outlet />
+</main>

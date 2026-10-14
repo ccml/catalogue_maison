@@ -1,0 +1,139 @@
+h1 {
+  margin: 2.5rem 0 1.5rem;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: center;
+  padding-bottom: 1rem;
+}
+
+input[type='search'] {
+  flex: 1 1 16rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--shelf);
+  border-radius: 2px;
+  padding: 0.45rem 0.6rem;
+}
+
+.types {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9375rem;
+}
+
+.types button {
+  background: none;
+  border: 0;
+  padding: 0 0 2px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.types button:hover {
+  color: var(--ink);
+}
+
+.types button.current {
+  color: var(--ink);
+  border-bottom-color: var(--pine);
+}
+
+.notice {
+  color: var(--ink-soft);
+  border-top: 1px solid var(--shelf);
+  padding-top: 1.25rem;
+  margin: 0;
+}
+
+.notice-problem {
+  color: var(--ochre);
+}
+
+/* Une étagère : des tranches alignées, séparées par un filet. Pas de carte,
+   pas d'ombre — ce sont des objets rangés côte à côte. */
+.shelf {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--shelf);
+}
+
+.item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0 0.85rem 0.85rem;
+  border-bottom: 1px solid var(--shelf);
+  border-left: 3px solid var(--shelf);
+}
+
+/* Le liseré code le type. C'est le seul endroit où la couleur porte une
+   information de classement. */
+.item[data-type='Book'] { border-left-color: var(--type-book); }
+.item[data-type='Music'] { border-left-color: var(--type-music); }
+.item[data-type='Film'] { border-left-color: var(--type-film); }
+.item[data-type='Game'] { border-left-color: var(--type-game); }
+
+.item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+/* Le serif marque le titre d'une œuvre ; le sans, ce que dit l'application. */
+.work {
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+}
+
+.attribution {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.item-aside {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.where {
+  color: var(--ink-soft);
+}
+
+/* L'ocre ne sert qu'à cet état. */
+.lent {
+  color: var(--ochre);
+}
+
+.lend {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--pine);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.count {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 34rem) {
+  .item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+}
