@@ -7,7 +7,13 @@ import {
   type UserManagerSettings,
 } from 'oidc-client-ts';
 import { APP_SETTINGS } from '../app-settings';
-import { Roles, type KeycloakClaims } from './keycloak-claims';
+import {
+  hasHousehold,
+  householdOf,
+  mayWrite,
+  rolesOf,
+  type KeycloakClaims,
+} from './keycloak-claims';
 
 /**
  * Authentification par Authorization Code Flow + PKCE, client public.
@@ -40,18 +46,16 @@ export class AuthService {
   });
 
   /** Ménage, pour l'affichage seulement. */
-  readonly household = computed(() => this.claims()?.tenant ?? null);
+  readonly household = computed(() => householdOf(this.claims()));
+
+  /** Vrai si l'utilisateur a un ménage, donc un catalogue à consulter. */
+  readonly hasHousehold = computed(() => hasHousehold(this.claims()));
 
   /** Rôles, pour l'affichage seulement — jamais comme règle de sécurité. */
-  readonly rolesForDisplay = computed<readonly string[]>(
-    () => this.claims()?.realm_access?.roles ?? [],
-  );
+  readonly rolesForDisplay = computed<readonly string[]>(() => rolesOf(this.claims()));
 
   /** Vrai si l'interface peut proposer d'écrire. L'API tranche vraiment. */
-  readonly mayWrite = computed(() => {
-    const roles = this.rolesForDisplay();
-    return roles.includes(Roles.adult) || roles.includes(Roles.householdAdmin);
-  });
+  readonly mayWrite = computed(() => mayWrite(this.claims()));
 
   constructor() {
     this.manager.events.addUserLoaded((user) => this.user.set(user));

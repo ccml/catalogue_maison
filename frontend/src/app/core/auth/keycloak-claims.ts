@@ -1,7 +1,7 @@
 /**
- * Claims que ce frontend lit dans le jeton.
+ * Claims que ce frontend lit dans le jeton d'identité.
  *
- * Ils servent **uniquement à l'affichage** : masquer un bouton n'est pas une
+ * Ils servent **uniquement à l'affichage** : masquer un lien n'est pas une
  * règle de sécurité. Toute autorisation réelle est revalidée par l'API, qui
  * ne fait confiance à rien de ce qui vient d'ici.
  */
@@ -21,3 +21,44 @@ export const Roles = {
   child: 'enfant',
   householdAdmin: 'admin-menage',
 } as const;
+
+/**
+ * Ménage porté par le jeton, ou `null`.
+ *
+ * Seule l'absence de valeur est jugée ici. La forme exacte, elle, est
+ * validée par l'API : la dupliquer des deux côtés les ferait dériver, et un
+ * ménage mal formé est de toute façon refusé à la première requête.
+ */
+export function householdOf(claims: KeycloakClaims | null): string | null {
+  const tenant = claims?.tenant?.trim();
+  return tenant === undefined || tenant.length === 0 ? null : tenant;
+}
+
+export function rolesOf(claims: KeycloakClaims | null): readonly string[] {
+  return claims?.realm_access?.roles ?? [];
+}
+
+/**
+ * Vrai si l'interface peut proposer de consulter un catalogue.
+ *
+ * Sans ménage, il n'y a aucun catalogue à montrer : proposer d'y naviguer
+ * mène à un écran qui refuse, ce qui donne l'impression d'une panne plutôt
+ * que d'un compte à rattacher.
+ */
+export function hasHousehold(claims: KeycloakClaims | null): boolean {
+  return householdOf(claims) !== null;
+}
+
+/**
+ * Vrai si l'interface peut proposer d'écrire. L'API tranche vraiment.
+ *
+ * Le rôle ne suffit pas : écrire suppose un ménage où écrire.
+ */
+export function mayWrite(claims: KeycloakClaims | null): boolean {
+  if (!hasHousehold(claims)) {
+    return false;
+  }
+
+  const roles = rolesOf(claims);
+  return roles.includes(Roles.adult) || roles.includes(Roles.householdAdmin);
+}

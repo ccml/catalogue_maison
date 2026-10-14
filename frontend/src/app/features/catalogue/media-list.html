@@ -1,74 +1,82 @@
-<h1>Le catalogue</h1>
-
-<div class="filters">
-  <label class="a11y-only" for="recherche">Rechercher dans le catalogue</label>
-  <input
-    id="recherche"
-    #recherche
-    type="search"
-    autocomplete="off"
-    placeholder="Un titre, un auteur"
-    (input)="search(recherche.value)"
-  />
-
-  <div class="types" role="group" aria-label="Filtrer par type de média">
-    <button type="button" [class.current]="type() === null" (click)="filterByType(null)">
-      Tout
-    </button>
-    @for (mediaType of types; track mediaType) {
-      <button
-        type="button"
-        [class.current]="type() === mediaType"
-        (click)="filterByType(mediaType)"
-      >
-        {{ labels[mediaType] }}
-      </button>
-    }
-  </div>
-</div>
-
-@if (error()) {
-  <p class="notice notice-problem" role="alert">{{ error() }}</p>
-}
-
-@if (loading()) {
-  <p class="notice">Lecture du catalogue…</p>
-} @else if (items().length === 0 && !error()) {
-  @if (term().length > 0 || type() !== null) {
-    <p class="notice">Aucun média ne correspond à cette recherche.</p>
-  } @else {
-    <p class="notice">
-      Le catalogue est vide.
-      @if (auth.mayWrite()) {
-        <a routerLink="/catalogue/ajouter">Ajoutez le premier média.</a>
-      }
-    </p>
-  }
+@if (refusDefinitif(); as refus) {
+  <section class="refus">
+    <h1>Pas de catalogue à afficher</h1>
+    <p>{{ refus.message }}</p>
+    <button type="button" (click)="auth.signOut()">Se déconnecter</button>
+  </section>
 } @else {
-  <ol class="shelf">
-    @for (media of items(); track media.id) {
-      <li class="item" [attr.data-type]="media.type">
-        <div class="item-main">
-          <span class="work">{{ media.title }}</span>
-          <span class="attribution">{{ attribution(media) }}</span>
-        </div>
+  <h1>Le catalogue</h1>
 
-        <div class="item-aside">
-          @if (media.isLent) {
-            <span class="lent">Prêté</span>
-          } @else if (media.location !== null) {
-            <span class="where">{{ media.location }}</span>
-          }
+  <div class="filters">
+    <label class="a11y-only" for="recherche">Rechercher dans le catalogue</label>
+    <input
+      id="recherche"
+      #recherche
+      type="search"
+      autocomplete="off"
+      placeholder="Un titre, un auteur"
+      (input)="search(recherche.value)"
+    />
 
-          @if (auth.mayWrite()) {
-            <button type="button" class="lend" (click)="toggleLent(media)">
-              {{ media.isLent ? 'Marquer revenu' : 'Marquer prêté' }}
-            </button>
-          }
-        </div>
-      </li>
+    <div class="types" role="group" aria-label="Filtrer par type de média">
+      <button type="button" [class.current]="type() === null" (click)="filterByType(null)">
+        Tout
+      </button>
+      @for (mediaType of types; track mediaType) {
+        <button
+          type="button"
+          [class.current]="type() === mediaType"
+          (click)="filterByType(mediaType)"
+        >
+          {{ labels[mediaType] }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (probleme(); as probleme) {
+    <p class="notice notice-problem" role="alert">{{ probleme.message }}</p>
+  }
+
+  @if (loading()) {
+    <p class="notice">Lecture du catalogue…</p>
+  } @else if (items().length === 0 && probleme() === null) {
+    @if (term().length > 0 || type() !== null) {
+      <p class="notice">Aucun média ne correspond à cette recherche.</p>
+    } @else {
+      <p class="notice">
+        Le catalogue est vide.
+        @if (auth.mayWrite()) {
+          <a routerLink="/catalogue/ajouter">Ajoutez le premier média.</a>
+        }
+      </p>
     }
-  </ol>
+  } @else {
+    <ol class="shelf">
+      @for (media of items(); track media.id) {
+        <li class="item" [attr.data-type]="media.type">
+          <div class="item-main">
+            <span class="work">{{ media.title }}</span>
+            <span class="attribution">{{ attribution(media) }}</span>
+          </div>
 
-  <p class="count">{{ total() }} {{ total() === 1 ? 'média' : 'médias' }}</p>
+          <div class="item-aside">
+            @if (media.isLent) {
+              <span class="lent">Prêté</span>
+            } @else if (media.location !== null) {
+              <span class="where">{{ media.location }}</span>
+            }
+
+            @if (auth.mayWrite()) {
+              <button type="button" class="lend" (click)="toggleLent(media)">
+                {{ media.isLent ? 'Marquer revenu' : 'Marquer prêté' }}
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ol>
+
+    <p class="count">{{ total() }} {{ total() === 1 ? 'média' : 'médias' }}</p>
+  }
 }

@@ -44,6 +44,21 @@ C'est pourquoi ce fichier contient les six scopes intégrés en entier. Leurs
 définitions ont été relevées sur le realm `master` d'une instance neuve, et
 non écrites à la main. **Ne pas les retirer** en les croyant redondants.
 
+## Les rôles doivent être dans les deux jetons
+
+Le mapper « realm roles » du scope `roles` écrit `realm_access` dans le jeton
+d'accès **et** dans le jeton d'identité (`id.token.claim`), ce qui s'écarte
+de la définition intégrée de Keycloak. C'est voulu, et les deux
+destinataires sont différents :
+
+- l'**API** valide le jeton d'accès et y lit les rôles pour ses policies ;
+- le **frontend** ne lit que le jeton d'identité — c'est le seul que la
+  librairie OIDC expose. Sans cette ligne, l'interface ne voit aucun rôle et
+  masque ses actions d'écriture à des comptes qui y ont pourtant droit.
+
+Faire décoder le jeton d'accès par le frontend serait l'autre solution, et
+elle est écartée : ce jeton est destiné à l'API, pas au client.
+
 ## Ce que contient le realm
 
 Un **realm unique** (`maison`) partagé par tous les ménages — pas de realm

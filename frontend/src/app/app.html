@@ -2,7 +2,7 @@
   <div class="masthead-inner">
     <a class="wordmark" routerLink="/catalogue">Catalogue maison</a>
 
-    @if (auth.isAuthenticated()) {
+    @if (auth.hasHousehold()) {
       <nav>
         <a routerLink="/catalogue" routerLinkActive="current" [routerLinkActiveOptions]="{ exact: true }">
           Tout le catalogue
@@ -12,6 +12,9 @@
         }
       </nav>
 
+    }
+
+    @if (auth.isAuthenticated()) {
       <div class="who">
         <span>{{ auth.displayName() }}</span>
         <button type="button" (click)="auth.signOut()">Se déconnecter</button>

@@ -2,6 +2,32 @@ h1 {
   margin: 2.5rem 0 1.5rem;
 }
 
+/* Refus définitif : l'écran dit ce qui se passe, et ne feint pas un
+   catalogue consultable. */
+.refus {
+  max-width: 44ch;
+  padding: 4rem 0 2rem;
+}
+
+.refus p {
+  color: var(--ink-soft);
+  margin: 1rem 0 1.75rem;
+}
+
+.refus button {
+  background: none;
+  border: 1px solid var(--shelf);
+  border-radius: 2px;
+  padding: 0.5rem 1.1rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.refus button:hover {
+  border-color: var(--pine);
+  color: var(--pine);
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;

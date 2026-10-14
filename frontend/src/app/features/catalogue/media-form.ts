@@ -125,6 +125,6 @@ export class MediaForm {
       }
     }
 
-    return describeHttpError(error);
+    return describeHttpError(error).message;
   }
 }

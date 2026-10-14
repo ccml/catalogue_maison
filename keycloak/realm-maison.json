@@ -210,7 +210,8 @@
             "access.token.claim": "true",
             "claim.name": "realm_access.roles",
             "jsonType.label": "String",
-            "multivalued": "true"
+            "multivalued": "true",
+            "id.token.claim": "true"
           }
         },
         {

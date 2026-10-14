@@ -1,9 +1,9 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 import { CatalogueApi } from '../../core/api/catalogue-api.service';
-import { describeHttpError } from '../../core/api/http-error';
+import { describeHttpError, type ApiProblem } from '../../core/api/http-error';
 import { mediaTypeLabels, type MediaSummary, type MediaType } from '../../core/api/media.models';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -24,7 +24,17 @@ export class MediaList implements OnInit {
   protected readonly items = signal<readonly MediaSummary[]>([]);
   protected readonly total = signal(0);
   protected readonly loading = signal(false);
-  protected readonly error = signal<string | null>(null);
+  protected readonly probleme = signal<ApiProblem | null>(null);
+
+  /**
+   * Refus qu'aucune reconnexion ne résoudra : un compte sans ménage, un
+   * schéma en retard. L'écran doit alors dire ce qui se passe, et non
+   * afficher un catalogue vide sous un bandeau d'erreur.
+   */
+  protected readonly refusDefinitif = computed(() => {
+    const probleme = this.probleme();
+    return probleme !== null && probleme.terminal ? probleme : null;
+  });
 
   protected readonly types: readonly MediaType[] = ['Book', 'Music', 'Film', 'Game'];
   protected readonly labels = mediaTypeLabels;
@@ -75,13 +85,13 @@ export class MediaList implements OnInit {
         items.map((item) => (item.id === media.id ? { ...item, isLent: wanted } : item)),
       );
     } catch (error) {
-      this.error.set(describeHttpError(error));
+      this.probleme.set(describeHttpError(error));
     }
   }
 
   private async load(): Promise<void> {
     this.loading.set(true);
-    this.error.set(null);
+    this.probleme.set(null);
 
     try {
       const page = await firstValueFrom(
@@ -92,7 +102,7 @@ export class MediaList implements OnInit {
     } catch (error) {
       this.items.set([]);
       this.total.set(0);
-      this.error.set(describeHttpError(error));
+      this.probleme.set(describeHttpError(error));
     } finally {
       this.loading.set(false);
     }
