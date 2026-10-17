@@ -1,12 +1,18 @@
 {
   "realm": "maison",
   "enabled": true,
-  "displayName": "CatalogueMaison",
+  "displayName": "Catalogue maison",
+  "loginTheme": "maison",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "fr"
+  ],
+  "defaultLocale": "fr",
   "sslRequired": "external",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": true,
+  "resetPasswordAllowed": false,
   "editUsernameAllowed": false,
   "accessTokenLifespan": 300,
   "ssoSessionIdleTimeout": 1800,

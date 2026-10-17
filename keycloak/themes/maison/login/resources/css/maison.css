@@ -1,0 +1,184 @@
+/* Connexion aux couleurs de Catalogue maison.
+ *
+ * Reprend les repères du frontend (frontend/src/styles.scss) : papier et
+ * encre, vert pin pour l'action, filets de 1px, aucun ombrage, coins à 2px.
+ * Le serif est réservé aux titres, le sans à ce que dit l'interface. Les
+ * valeurs sont recopiées, faute de feuille commune : les modifier ici et là
+ * ensemble. */
+
+@import url("https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap");
+
+:root {
+  --ink: #15211f;
+  --ink-soft: #4a5a56;
+  --paper: #f2f4f1;
+  --paper-raised: #fbfcfa;
+  --shelf: #d4dbd3;
+  --pine: #1f5f4f;
+  --ochre: #a8612a;
+
+  --sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --serif: "Source Serif 4", ui-serif, Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e4eae6;
+    --ink-soft: #9aa8a3;
+    --paper: #121715;
+    --paper-raised: #1a2120;
+    --shelf: #2c3734;
+    --pine: #6fbda6;
+    --ochre: #d8975c;
+  }
+}
+
+/* PatternFly, réglé sur la palette du site. */
+:root {
+  --pf-v5-global--FontFamily--text: var(--sans);
+  --pf-v5-global--FontFamily--heading: var(--serif);
+  --pf-v5-global--Color--100: var(--ink);
+  --pf-v5-global--Color--200: var(--ink-soft);
+  --pf-v5-global--BackgroundColor--100: var(--paper-raised);
+  --pf-v5-global--BorderColor--100: var(--shelf);
+  --pf-v5-global--primary-color--100: var(--pine);
+  --pf-v5-global--primary-color--200: var(--ink);
+  --pf-v5-global--link--Color: var(--pine);
+  --pf-v5-global--link--Color--hover: var(--ink);
+  --pf-v5-global--danger-color--100: var(--ochre);
+  --pf-v5-global--BorderRadius--sm: 2px;
+  --keycloak-card-top-color: var(--pine);
+}
+
+html,
+.login-pf body {
+  background: var(--paper);
+  color: var(--ink);
+  color-scheme: light dark;
+}
+
+/* Le fond illustré de Keycloak cède la place au papier du site. */
+.login-pf body {
+  background-image: none;
+}
+
+/* L'en-tête porte le nom du site comme le bandeau du frontend : serif, sans
+   capitales ni espacement de lettres. */
+#kc-header-wrapper {
+  font-family: var(--serif);
+  font-size: 1.75rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--ink) !important;
+}
+
+/* La carte : une surface à plat, filet de 1px et liseré pin en tête, comme
+   les tranches du catalogue. Pas d'ombre portée. */
+.pf-v5-c-login__main {
+  --pf-v5-c-login__main--BackgroundColor: var(--paper-raised);
+  --pf-v5-c-login__main--BoxShadow: none;
+  border: 1px solid var(--shelf);
+  border-radius: 2px;
+}
+
+.pf-v5-c-login__main-header {
+  border-top-width: 3px;
+}
+
+#kc-page-title {
+  font-family: var(--serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.pf-v5-c-form__label-text,
+.pf-v5-c-check__label {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+/* Champs : le cadre de 1px du site, au lieu du soulignement de PatternFly
+   porté par des pseudo-éléments. */
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--BackgroundColor: var(--paper-raised);
+  border: 1px solid var(--shelf);
+  border-radius: 2px;
+  color: var(--ink);
+}
+
+.pf-v5-c-form-control::before,
+.pf-v5-c-form-control::after {
+  border: 0 !important;
+}
+
+.pf-v5-c-form-control:focus-within {
+  border-color: var(--pine);
+}
+
+.pf-v5-c-form-control.pf-m-error {
+  border-color: var(--ochre);
+}
+
+.pf-v5-c-form-control input {
+  color: var(--ink);
+}
+
+/* Le focus reste toujours visible, au clavier comme à la souris. */
+:focus-visible {
+  outline: 2px solid var(--pine);
+  outline-offset: 2px;
+}
+
+/* Boutons : l'aplat pin du bouton « Enregistrer » du site. */
+.pf-v5-c-button.pf-m-primary {
+  background: var(--pine);
+  color: var(--paper-raised);
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+.pf-v5-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:focus {
+  background: var(--ink);
+  color: var(--paper-raised);
+}
+
+/* Bouton « afficher le mot de passe » : même filet que le champ qu'il
+   prolonge. PatternFly dessine sa bordure par un pseudo-élément. */
+.pf-v5-c-button.pf-m-control {
+  border-radius: 2px;
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+}
+
+.pf-v5-c-button.pf-m-control::after {
+  border: 1px solid var(--shelf) !important;
+  border-radius: 2px;
+}
+
+a {
+  color: var(--pine);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+/* Messages : l'ocre du site pour les erreurs, à plat. */
+.pf-v5-c-alert {
+  --pf-v5-c-alert--BoxShadow: none;
+  background: var(--paper-raised);
+  border: 1px solid var(--shelf);
+  border-inline-start: 3px solid var(--pine);
+  border-radius: 2px;
+}
+
+.pf-v5-c-alert.pf-m-danger,
+.pf-v5-c-alert.pf-m-warning {
+  border-inline-start-color: var(--ochre);
+}
+
+.pf-v5-c-helper-text__item.pf-m-error,
+.kc-feedback-text.pf-m-error {
+  color: var(--ochre);
+}

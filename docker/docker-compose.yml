@@ -42,6 +42,10 @@ services:
       # L'export du realm est versionné dans /keycloak : toute modification
       # de configuration doit passer par ce fichier, pas par la console.
       - ../keycloak:/opt/keycloak/data/import:ro
+      # Thème de connexion aux couleurs du site, versionné lui aussi. En
+      # start-dev, Keycloak ne met pas les thèmes en cache : une feuille de
+      # style modifiée se voit au rechargement de la page.
+      - ../keycloak/themes:/opt/keycloak/themes:ro
 
 volumes:
   postgres-data:

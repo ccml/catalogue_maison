@@ -59,6 +59,33 @@ destinataires sont différents :
 Faire décoder le jeton d'accès par le frontend serait l'autre solution, et
 elle est écartée : ce jeton est destiné à l'API, pas au client.
 
+## Pas de « mot de passe oublié »
+
+Aucun serveur de courriel n'est configuré, ni prévu : la réinitialisation
+du mot de passe par courriel est donc désactivée (`resetPasswordAllowed:
+false`), et le lien n'apparaît pas sur la page de connexion. Un mot de passe
+perdu se réinitialise par l'administration du ménage. Ne pas réactiver
+l'option sans configurer d'abord `smtpServer` : la page s'afficherait, mais
+aucun courriel ne partirait.
+
+## Thème de connexion
+
+`themes/maison` donne aux pages de Keycloak (connexion, erreur…) le style du
+site, et le realm les affiche en français
+(`defaultLocale: fr`). Il est monté dans le conteneur par
+`docker-compose.yml`, et désigné par `loginTheme` dans le realm.
+
+Le thème **hérite** de `keycloak.v2` et ne remplace que la feuille de style
+(`login/resources/css/maison.css`) : aucun gabarit n'est copié, si bien que
+tous les écrans et le comportement de Keycloak restent ceux du parent, et que
+le thème survit aux montées de version. Ce n'est pas une extension Java — ni
+SPI, ni JAR —, seulement des ressources statiques.
+
+Les couleurs et les polices sont recopiées de `frontend/src/styles.scss`,
+faute de feuille commune : les modifier aux deux endroits. En `start-dev`,
+Keycloak ne met pas les thèmes en cache — une modification de la feuille se
+voit au rechargement de la page, sans redémarrage.
+
 ## Ce que contient le realm
 
 Un **realm unique** (`maison`) partagé par tous les ménages — pas de realm
