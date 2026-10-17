@@ -365,6 +365,8 @@ docker compose -f docker/docker-compose.yml restart keycloak
 
 # Un service .NET
 dotnet run --project services/Catalogue.Api
+tools/dev.sh metadata            # Metadata.Api sur :5081
+tools/dev.sh metadata-migrate    # migrations du cache (base metadata, non partitionnée)
 dotnet ef database update --project services/Catalogue.Api
 dotnet test
 

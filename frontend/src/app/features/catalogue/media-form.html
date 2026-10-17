@@ -7,11 +7,59 @@
   }
 </p>
 
+@if (!correction()) {
+  <section class="scan" aria-labelledby="scan-titre">
+    <h2 id="scan-titre">Par son code-barres</h2>
+
+    <form class="scan-code" [formGroup]="scanForm" (ngSubmit)="chercheCode()" novalidate>
+      <label class="a11y-only" for="code">Code-barres ou ISBN</label>
+      <input
+        id="code"
+        type="text"
+        inputmode="numeric"
+        autocomplete="off"
+        placeholder="ISBN ou code-barres"
+        formControlName="code"
+      />
+      <button type="submit" [disabled]="searching()">
+        {{ searching() ? 'Recherche' : 'Chercher' }}
+      </button>
+      @if (!camera()) {
+        <button type="button" class="secondaire" (click)="camera.set(true)" [disabled]="searching()">
+          Scanner avec la caméra
+        </button>
+      }
+    </form>
+
+    @if (camera()) {
+      <app-barcode-scanner (detected)="codeLu($event)" (closed)="camera.set(false)" />
+    }
+
+    @if (searching()) {
+      <p class="scan-notice" role="status">Recherche de la notice…</p>
+    }
+
+    @if (scanProbleme(); as probleme) {
+      <p class="notice-problem" role="alert">{{ probleme }}</p>
+    }
+
+    @if (scanResult(); as result) {
+      <p class="scan-notice" [class.attention]="notice()?.tone === 'attention'" role="status">
+        {{ notice()?.text }}
+        @if (result.existing; as existing) {
+          « {{ existing.title }} »{{ existing.location ? ', ' + existing.location : '' }}.
+          <a [routerLink]="['/catalogue', existing.id]">Voir la fiche</a>
+        }
+      </p>
+    }
+  </section>
+}
+
 @if (loading()) {
   <p class="lede">Lecture de la fiche…</p>
 }
 
-<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+<form class="fiche" [formGroup]="form" (ngSubmit)="submit()" novalidate>
   <div class="field">
     <label for="type">Type</label>
     <select id="type" formControlName="type">

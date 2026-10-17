@@ -94,17 +94,32 @@ public static class MediaEndpoints
         CatalogueDbContext db,
         CancellationToken cancellationToken)
     {
-        var normalized = IsbnFormat.Normalize(isbn);
-        if (normalized is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var media = await db.Medias
-            .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Isbn == normalized, cancellationToken);
+        var media = await FindByIsbnAsync(db, isbn, cancellationToken);
 
         return media is null ? TypedResults.NotFound() : TypedResults.Ok(ToDetail(media));
+    }
+
+    /// <summary>
+    /// Média du ménage portant cet ISBN, sous sa forme 10 ou 13. Partagé par
+    /// la recherche par ISBN et par le scan, qui doivent trouver les mêmes
+    /// doublons.
+    /// </summary>
+    internal static async Task<Media?> FindByIsbnAsync(
+        CatalogueDbContext db,
+        string? isbn,
+        CancellationToken cancellationToken)
+    {
+        var forms = IsbnFormat.Equivalents(isbn);
+        if (forms.Count == 0)
+        {
+            return null;
+        }
+
+        return await db.Medias
+            .AsNoTracking()
+            .Where(m => m.Isbn != null && forms.Contains(m.Isbn))
+            .OrderBy(m => m.AddedAt)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private static async Task<Results<Created<MediaDetailResponse>, ValidationProblem>> CreateAsync(

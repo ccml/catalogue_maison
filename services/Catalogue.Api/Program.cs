@@ -1,4 +1,5 @@
 using Catalogue.Api.Features.Medias;
+using Catalogue.Api.Features.Scans;
 using Catalogue.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,7 @@ var app = builder.Build();
 
 app.UseCatalogueApi();
 app.MapMediaEndpoints();
+app.MapScanEndpoints();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();

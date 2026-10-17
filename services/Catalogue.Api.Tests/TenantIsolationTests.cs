@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Catalogue.Api.Domain;
 using Catalogue.Api.Features.Medias;
+using Catalogue.Api.Features.Scans;
 using Catalogue.Api.Infrastructure;
 using Xunit;
 
@@ -55,6 +56,14 @@ public sealed class TenantIsolationTests(CatalogueApiFixture fixture) : IClassFi
         var scan = await menageB.GetAsync($"/medias/by-isbn/{IsbnNormalise}");
         Assert.Equal(HttpStatusCode.NotFound, scan.StatusCode);
 
+        // 3 bis. Par le chemin « scan » complet : le livre de A n'est pas un
+        // doublon pour B, et rien de la fiche de A ne lui est renvoyé.
+        var scanComplet = await menageB.GetFromJsonAsync<ScanResponse>(
+            $"/scans/{IsbnNormalise}", CatalogueApiFixture.Json);
+        Assert.NotNull(scanComplet);
+        Assert.Null(scanComplet.Existing);
+        Assert.NotEqual("Le Horla", scanComplet.Draft?.Title);
+
         // 4. Ni en écriture : l'isolation doit couvrir la correction et la
         // suppression, pas seulement la lecture.
         var correction = await menageB.PutAsJsonAsync($"/medias/{livre!.Id}", new UpdateMediaRequest(
@@ -83,6 +92,10 @@ public sealed class TenantIsolationTests(CatalogueApiFixture fixture) : IClassFi
 
         var scanA = await menageA.GetAsync($"/medias/by-isbn/{IsbnNormalise}");
         Assert.Equal(HttpStatusCode.OK, scanA.StatusCode);
+
+        var scanCompletA = await menageA.GetFromJsonAsync<ScanResponse>(
+            $"/scans/{IsbnNormalise}", CatalogueApiFixture.Json);
+        Assert.Equal(livre.Id, scanCompletA!.Existing?.Id);
     }
 
     [Fact]

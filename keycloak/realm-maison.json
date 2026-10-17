@@ -24,6 +24,10 @@
       {
         "name": "admin-menage",
         "description": "Administre les membres de son menage"
+      },
+      {
+        "name": "enrichissement",
+        "description": "Interroge Metadata.Api. Reserve au compte de service de catalogue-api, jamais a une personne"
       }
     ]
   },
@@ -481,6 +485,14 @@
     }
   ],
   "users": [
+    {
+      "username": "service-account-catalogue-api",
+      "enabled": true,
+      "serviceAccountClientId": "catalogue-api",
+      "realmRoles": [
+        "enrichissement"
+      ]
+    },
     {
       "username": "service-account-tenants-api",
       "enabled": true,

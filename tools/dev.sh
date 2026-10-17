@@ -16,6 +16,7 @@ LOG="$LOGS/$COMMANDE.log"
 COMPOSE="docker compose -f $ROOT/docker/docker-compose.yml"
 SOLUTION="$ROOT/CatalogueMaison.slnx"
 API="$ROOT/services/Catalogue.Api"
+METADATA="$ROOT/services/Metadata.Api"
 
 usage() {
   cat <<'USAGE'
@@ -33,6 +34,9 @@ Usage: tools/dev.sh <commande>
   migrate-all     Applique les migrations à tous les schémas de ménage
   keycloak-reimport  Recrée Keycloak pour réimporter le realm
   api             Démarre Catalogue.Api sur http://localhost:5080
+  metadata        Démarre Metadata.Api sur http://localhost:5081
+  metadata-migration <nom>  Génère une migration EF de Metadata.Api
+  metadata-migrate          Applique les migrations à la base metadata
   front           Compile le frontend et lance ses tests
   front-start     Démarre le frontend en développement
   front-install   Installe les dépendances du frontend
@@ -106,6 +110,16 @@ case "${1:-}" in
     run $COMPOSE rm -sf keycloak && run $COMPOSE up -d keycloak
     ;;
   api)           run dotnet run --project "$API" ;;
+  metadata)      run dotnet run --project "$METADATA" ;;
+  metadata-migration)
+    [ -n "${2:-}" ] || { echo "Nom de migration manquant." | tee -a "$LOG"; exit 2; }
+    run dotnet ef migrations add "$2" --project "$METADATA" --output-dir Infrastructure/Persistence/Migrations
+    ;;
+  metadata-migrate)
+    # Une seule base, non partitionnée : le cache est commun à tous les
+    # ménages, il n'y a pas de schéma à itérer.
+    run dotnet ef database update --project "$METADATA"
+    ;;
   front-install) run bash -c "cd '$ROOT/frontend' && npm install" ;;
   front-start)
     # ng serve lit le clavier (« press h + enter ») : lancé en arrière-plan

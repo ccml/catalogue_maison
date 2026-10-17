@@ -127,3 +127,33 @@ export function emptySpecifics(type: MediaType): MediaSpecifics {
       return { type: 'game' };
   }
 }
+
+/** Ce que l'enrichissement a pu dire d'un code scanné. */
+export type EnrichmentStatus = 'Found' | 'NotFound' | 'Unavailable' | 'NotAttempted';
+
+/**
+ * Fiche pré-remplie par un scan. Rien n'est enregistré : l'utilisateur
+ * valide ou corrige, puis enregistre comme une saisie manuelle.
+ *
+ * L'API omet les champs nuls : chacun est donc facultatif ici, et se lit
+ * avec `?? null`.
+ */
+export interface ScanDraft {
+  readonly type: MediaType;
+  readonly title?: string | null;
+  readonly creator?: string | null;
+  readonly year?: number | null;
+  readonly specifics?: MediaSpecifics | null;
+}
+
+export interface ScanResult {
+  /** Code tel que l'API l'a normalisé. */
+  readonly code: string;
+  /** Média du ménage portant déjà ce code. Absent s'il n'y en a pas. */
+  readonly existing?: MediaSummary | null;
+  /** Absente si le média existe déjà ou si rien n'est connu du code. */
+  readonly draft?: ScanDraft | null;
+  readonly enrichment: EnrichmentStatus;
+  /** Identifiant de la source de la notice : `bnf`, `openlibrary`, `musicbrainz`. */
+  readonly source?: string | null;
+}

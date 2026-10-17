@@ -76,8 +76,22 @@ clients. C'est le **seul** endroit où un service lit le ménage.
 |---|---|---|
 | `catalogue-frontend` | public | Angular, Authorization Code + PKCE S256 |
 | `catalogue-api` | confidentiel | valide les bearer ; appelle `metadata-api` |
-| `metadata-api` | confidentiel | appelé en service à service |
+| `metadata-api` | confidentiel | appelé en service à service, n'appelle personne |
 | `tenants-api` | confidentiel | **seul** client avec accès à l'Admin REST API |
+
+### Service à service : `catalogue-api` → `metadata-api`
+
+Catalogue.Api obtient **son propre** jeton en client credentials ; le jeton
+de l'utilisateur n'est jamais relayé à Metadata.Api. Ce jeton porte :
+
+- l'audience `metadata-api`, via le scope `metadata-api-audience` ;
+- le rôle de realm `enrichissement`, attribué au seul compte
+  `service-account-catalogue-api`, et exigé par Metadata.Api ;
+- **aucun** claim `tenant` : l'enrichissement est commun à tous les
+  ménages, et ne doit rien savoir de celui qui scanne.
+
+Un jeton d'utilisateur ne porte ni cette audience ni ce rôle : le frontend
+ne peut pas appeler Metadata.Api directement, il passe par Catalogue.Api.
 
 Les secrets de ce fichier (`dev-*`) sont des secrets de développement. Ils
 ne doivent jamais servir ailleurs qu'en local.

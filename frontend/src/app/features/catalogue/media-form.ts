@@ -12,8 +12,12 @@ import {
   type CreateMediaRequest,
   type MediaDetail,
   type MediaType,
+  type ScanDraft,
+  type ScanResult,
 } from '../../core/api/media.models';
+import { BarcodeScanner } from './barcode-scanner';
 import { buildSpecifics, parseNumber, specificsToFields, text } from './media-form.specifics';
+import { normalizeCode, scanNotice } from './scan';
 
 /**
  * Saisie et correction d'une fiche. **Seuls le type et le titre sont
@@ -23,10 +27,14 @@ import { buildSpecifics, parseNumber, specificsToFields, text } from './media-fo
  * Le même écran sert aux deux gestes, parce que corriger c'est resaisir : un
  * formulaire de correction distinct finirait par diverger du formulaire de
  * saisie, et un champ oublié d'un côté effacerait des données de l'autre.
+ *
+ * Le scan vit ici pour la même raison : il ne fait que **pré-remplir** ce
+ * formulaire, que l'utilisateur valide ou corrige avant d'enregistrer. Un
+ * scan sans notice laisse simplement le formulaire à compléter.
  */
 @Component({
   selector: 'app-media-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, BarcodeScanner],
   templateUrl: './media-form.html',
   styleUrl: './media-form.scss',
 })
@@ -48,10 +56,29 @@ export class MediaForm implements OnInit {
   protected readonly probleme = signal<string | null>(null);
   protected readonly currentType = signal<MediaType>('Book');
 
+  protected readonly camera = signal(false);
+  protected readonly searching = signal(false);
+  protected readonly scanResult = signal<ScanResult | null>(null);
+  protected readonly scanProbleme = signal<string | null>(null);
+  protected readonly notice = computed(() => {
+    const result = this.scanResult();
+    return result === null ? null : scanNotice(result);
+  });
+
+  private readonly fb = inject(FormBuilder).nonNullable;
+
+  /**
+   * Code tapé, ou envoyé par une douchette qui se comporte comme un clavier
+   * et finit par Entrée. Un vrai groupe, et non un contrôle isolé : sans
+   * `[formGroup]`, Entrée déclencherait la soumission native du navigateur,
+   * qui recharge la page et perd le jeton tenu en mémoire.
+   */
+  protected readonly scanForm = this.fb.group({ code: [''] });
+
   // Tous les champs sont du texte : les nombres sont convertis à
   // l'enregistrement, ce qui évite des contrôles nullables et des saisies
   // intermédiaires invalides.
-  protected readonly form = inject(FormBuilder).nonNullable.group({
+  protected readonly form = this.fb.group({
     type: ['Book' as MediaType, Validators.required],
     title: ['', [Validators.required, Validators.maxLength(512)]],
     creator: [''],
@@ -121,6 +148,79 @@ export class MediaForm implements OnInit {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  protected async chercheCode(): Promise<void> {
+    const code = normalizeCode(this.scanForm.controls.code.value);
+    if (code === null) {
+      this.scanResult.set(null);
+      this.scanProbleme.set(
+        'Ce code n’a pas la forme d’un ISBN ni d’un code-barres : 8, 10, 12 ou 13 chiffres.',
+      );
+      return;
+    }
+
+    await this.scanne(code);
+  }
+
+  protected async codeLu(code: string): Promise<void> {
+    this.camera.set(false);
+    this.scanForm.controls.code.setValue(code);
+    await this.scanne(code);
+  }
+
+  private async scanne(code: string): Promise<void> {
+    this.searching.set(true);
+    this.scanProbleme.set(null);
+    this.scanResult.set(null);
+
+    try {
+      const result = await firstValueFrom(this.api.scan(code));
+      this.scanResult.set(result);
+
+      // Champs absents quand ils sont nuls : on teste l'absence, pas `null`.
+      if (!result.existing && result.draft) {
+        this.preRemplis(result.draft);
+      }
+    } catch (error) {
+      this.scanProbleme.set(describeHttpError(error).message);
+    } finally {
+      this.searching.set(false);
+    }
+  }
+
+  /**
+   * Reporte la fiche proposée dans le formulaire. Tous les champs de
+   * spécificités sont réécrits, pour qu'un scan précédent ne laisse pas de
+   * restes ; l'emplacement est conservé, seul le ménage le connaît.
+   */
+  private preRemplis(draft: ScanDraft): void {
+    const champs = specificsToFields(draft.specifics ?? null);
+    const nombre = (valeur: number | null): string => (valeur === null ? '' : String(valeur));
+
+    this.form.patchValue({
+      type: draft.type,
+      title: draft.title ?? '',
+      creator: draft.creator ?? '',
+      year: nombre(draft.year ?? null),
+      isbn: champs.isbn,
+      publisher: champs.publisher,
+      pages: nombre(champs.pages),
+      series: champs.series,
+      volume: nombre(champs.volume),
+      illustrator: champs.illustrator,
+      label: champs.label,
+      format: champs.format,
+      tracks: champs.tracks,
+      studio: champs.studio,
+      durationMinutes: nombre(champs.durationMinutes),
+      support: champs.support,
+      platform: champs.platform,
+      minPlayers: nombre(champs.minPlayers),
+      maxPlayers: nombre(champs.maxPlayers),
+    });
+
+    this.currentType.set(draft.type);
   }
 
   /** Premier clic : la suppression étant définitive, elle se confirme. */

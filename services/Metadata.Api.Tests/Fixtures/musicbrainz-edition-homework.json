@@ -1,0 +1,128 @@
+{
+ "id": "b314ce03-0753-4f86-9a66-ec0eff166083",
+ "title": "Homework",
+ "date": "",
+ "barcode": "0724384260958",
+ "artist-credit": [
+  {
+   "artist": {
+    "sort-name": "Daft Punk",
+    "country": "FR",
+    "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+    "disambiguation": "French electronic duo",
+    "id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+    "type": "Group",
+    "name": "Daft Punk"
+   },
+   "name": "Daft Punk",
+   "joinphrase": ""
+  }
+ ],
+ "label-info": [
+  {
+   "catalog-number": null,
+   "label": {
+    "name": "ADA France",
+    "type": "Distributor",
+    "disambiguation": "distributor",
+    "id": "3b0a155a-ce07-4e15-816b-2398cb4f0680",
+    "label-code": null,
+    "type-id": "53ab8dcc-9946-3b62-966e-7634d78e5034",
+    "sort-name": "ADA France"
+   }
+  }
+ ],
+ "media": [
+  {
+   "format": "Digital Media",
+   "position": 1,
+   "id": "1a6e1b7a-cc40-39a3-90f1-f31caa34a2cd",
+   "format-id": "907a28d9-b3b2-3ef6-89a8-7b18d91d4794",
+   "title": "",
+   "track-offset": 0,
+   "tracks": [
+    {
+     "position": 1,
+     "number": "1",
+     "title": "Daftendirekt"
+    },
+    {
+     "position": 2,
+     "number": "2",
+     "title": "WDPK 83.7 FM"
+    },
+    {
+     "position": 3,
+     "number": "3",
+     "title": "Revolution 909"
+    },
+    {
+     "position": 4,
+     "number": "4",
+     "title": "Da Funk"
+    },
+    {
+     "position": 5,
+     "number": "5",
+     "title": "Phœnix"
+    },
+    {
+     "position": 6,
+     "number": "6",
+     "title": "Fresh"
+    },
+    {
+     "position": 7,
+     "number": "7",
+     "title": "Around the World"
+    },
+    {
+     "position": 8,
+     "number": "8",
+     "title": "Rollin' & Scratchin'"
+    },
+    {
+     "position": 9,
+     "number": "9",
+     "title": "Teachers"
+    },
+    {
+     "position": 10,
+     "number": "10",
+     "title": "High Fidelity"
+    },
+    {
+     "position": 11,
+     "number": "11",
+     "title": "Rock'n Roll"
+    },
+    {
+     "position": 12,
+     "number": "12",
+     "title": "Oh Yeah"
+    },
+    {
+     "position": 13,
+     "number": "13",
+     "title": "Burnin'"
+    },
+    {
+     "position": 14,
+     "number": "14",
+     "title": "Indo Silver Club"
+    },
+    {
+     "position": 15,
+     "number": "15",
+     "title": "Alive"
+    },
+    {
+     "position": 16,
+     "number": "16",
+     "title": "Funk Ad"
+    }
+   ],
+   "track-count": 16
+  }
+ ]
+}

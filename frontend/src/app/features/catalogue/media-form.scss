@@ -7,7 +7,7 @@ h1 {
   margin: 0 0 2rem;
 }
 
-form {
+form.fiche {
   max-width: 34rem;
   display: flex;
   flex-direction: column;
@@ -152,4 +152,58 @@ button.discret:hover {
   .pair {
     grid-template-columns: 1fr;
   }
+}
+
+/* Le scan précède la fiche : c'est le geste le plus court quand on a
+   l'objet en main, et il ne fait que remplir le formulaire qui suit. */
+.scan {
+  max-width: 34rem;
+  margin-bottom: 2.25rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--shelf);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.scan h2 {
+  font-size: 1rem;
+}
+
+.scan-code {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.scan-code input {
+  flex: 1 1 12rem;
+  width: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+button.secondaire {
+  background: none;
+  color: var(--pine);
+  border: 1px solid var(--pine);
+  border-radius: 2px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+button.secondaire:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.scan-notice {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  border-inline-start: 3px solid var(--pine);
+  padding-inline-start: 0.7rem;
+}
+
+.scan-notice.attention {
+  border-inline-start-color: var(--ochre);
 }

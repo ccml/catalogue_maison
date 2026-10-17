@@ -8,6 +8,7 @@ import type {
   MediaQuery,
   MediaSummary,
   Paged,
+  ScanResult,
   UpdateMediaRequest,
 } from './media.models';
 
@@ -52,6 +53,15 @@ export class CatalogueApi {
   /** Chemin « scan » : l'ISBN peut être fourni avec ses séparateurs. */
   findByIsbn(isbn: string): Observable<MediaDetail> {
     return this.http.get<MediaDetail>(`${this.baseUrl}/medias/by-isbn/${encodeURIComponent(isbn)}`);
+  }
+
+  /**
+   * Chemin « scan » complet : doublon dans le ménage, puis notice pré-remplie.
+   * L'API ne renvoie jamais d'erreur pour un enrichissement en panne — elle
+   * le signale dans `enrichment`, et la saisie reste possible.
+   */
+  scan(code: string): Observable<ScanResult> {
+    return this.http.get<ScanResult>(`${this.baseUrl}/scans/${encodeURIComponent(code)}`);
   }
 
   create(request: CreateMediaRequest): Observable<MediaDetail> {

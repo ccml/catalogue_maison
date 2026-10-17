@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Catalogue.Api.Infrastructure.Metadata;
 using Catalogue.Api.Infrastructure.Persistence;
 using Catalogue.Api.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Authentication;
@@ -105,9 +106,36 @@ public static class CatalogueApiRegistration
             .WithHeaders("Authorization", "Content-Type")
             .WithMethods("GET", "POST", "PUT", "DELETE")));
 
+        AddMetadataClient(services, configuration);
+
         services.AddProblemDetails();
 
         return services;
+    }
+
+    /// <summary>
+    /// Appel à Metadata.Api en service à service : jeton client credentials
+    /// propre à ce service, jamais celui de l'utilisateur.
+    /// </summary>
+    private static void AddMetadataClient(IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<MetadataOptions>(configuration.GetSection(MetadataOptions.Section));
+
+        var options = configuration.GetSection(MetadataOptions.Section).Get<MetadataOptions>() ?? new MetadataOptions();
+        var timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+
+        services.AddHttpClient(ServiceTokenProvider.HttpClientName, http => http.Timeout = timeout);
+        services.AddSingleton<ServiceTokenProvider>();
+        services.AddTransient<ServiceTokenHandler>();
+
+        services.AddHttpClient<IMetadataLookup, MetadataClient>(http =>
+            {
+                // Sans adresse configurée, l'enrichissement est simplement
+                // indisponible : le scan reste utilisable en saisie.
+                http.BaseAddress = options.BaseUrl ?? new Uri("http://metadata-api.non-configure.invalid/");
+                http.Timeout = timeout;
+            })
+            .AddHttpMessageHandler<ServiceTokenHandler>();
     }
 
     public static WebApplication UseCatalogueApi(this WebApplication app)

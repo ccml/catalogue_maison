@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Catalogue.Api.Infrastructure.Metadata;
 using Catalogue.Api.Infrastructure.Persistence;
 using Catalogue.Api.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -44,6 +45,12 @@ public sealed class CatalogueApiFixture : WebApplicationFactory<Program>, IAsync
         .WithUsername("maison")
         .WithPassword("dev")
         .Build();
+
+    /// <summary>
+    /// Metadata.Api simulé : Catalogue.Api n'en voit que le contrat, et ces
+    /// tests portent sur ce qu'il en fait — pas sur l'enrichissement.
+    /// </summary>
+    public FakeMetadataLookup Metadata { get; } = new();
 
     public static JsonSerializerOptions Json { get; } = new(JsonSerializerDefaults.Web)
     {
@@ -110,6 +117,8 @@ public sealed class CatalogueApiFixture : WebApplicationFactory<Program>, IAsync
 
         builder.ConfigureTestServices(services =>
         {
+            services.AddSingleton<IMetadataLookup>(Metadata);
+
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
                 // On remplace la découverte du JWKS par la clé de test, sans
@@ -144,5 +153,21 @@ public sealed class CatalogueApiFixture : WebApplicationFactory<Program>, IAsync
     {
         await base.DisposeAsync();
         await _postgres.DisposeAsync();
+    }
+}
+
+/// <summary>Résolution de notices pilotée par le test, qui garde trace des codes demandés.</summary>
+public sealed class FakeMetadataLookup : IMetadataLookup
+{
+    private readonly System.Collections.Concurrent.ConcurrentQueue<string> _requested = new();
+
+    public Func<string, MetadataLookup> Answer { get; set; } = _ => MetadataLookup.NotFound;
+
+    public IReadOnlyCollection<string> Requested => _requested;
+
+    public Task<MetadataLookup> LookupAsync(string code, CancellationToken cancellationToken)
+    {
+        _requested.Enqueue(code);
+        return Task.FromResult(Answer(code));
     }
 }
