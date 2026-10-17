@@ -118,10 +118,15 @@
           <form class="reset" [formGroup]="passwordForm" (ngSubmit)="resetPassword(member)" novalidate>
             <div class="field">
               <label [for]="'mdp-' + member.id">Mot de passe temporaire</label>
+              <!-- En clair pour être relu, mais sans majuscule ni correction automatiques :
+                   un clavier de téléphone changerait le mot de passe à l'insu de l'administrateur. -->
               <input
                 [id]="'mdp-' + member.id"
                 type="text"
                 autocomplete="off"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
                 formControlName="temporaryPassword"
                 [attr.aria-invalid]="passwordForm.controls.temporaryPassword.touched && passwordForm.controls.temporaryPassword.invalid"
               />
@@ -206,6 +211,9 @@
       id="mot-de-passe"
       type="text"
       autocomplete="off"
+      autocapitalize="none"
+      autocorrect="off"
+      spellcheck="false"
       formControlName="temporaryPassword"
       [attr.aria-invalid]="form.controls.temporaryPassword.touched && form.controls.temporaryPassword.invalid"
     />

@@ -1,0 +1,58 @@
+/* Le reste vient de l'écran des membres (voir styleUrls). */
+
+.admin {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.admin .pair {
+  margin: 0;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-actions button[type='button'] {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--shelf);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* Suppression définitive : l'ocre signale l'action sans appel. */
+.member-actions button.danger {
+  color: var(--ochre);
+}
+
+.purge {
+  flex-direction: column;
+  align-items: stretch;
+  border-left: 3px solid var(--ochre);
+  padding-left: 1rem;
+}
+
+/* En colonne, la base flexible héritée de « .reset .field » devient une
+   hauteur : on la neutralise. */
+.purge .field {
+  flex: 0 0 auto;
+}
+
+.purge-warning {
+  margin: 0;
+  max-width: var(--measure);
+}
+
+.purge code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+button.danger-primary {
+  background: var(--ochre);
+  border-color: var(--ochre);
+}

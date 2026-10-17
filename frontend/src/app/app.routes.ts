@@ -1,8 +1,16 @@
+import { inject } from '@angular/core';
 import type { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { AuthService } from './core/auth/auth.service';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'catalogue' },
+  {
+    // L'opérateur n'a pas de catalogue : sa page d'accueil est celle des
+    // ménages. Simple aiguillage d'affichage, l'API tranche les droits.
+    path: '',
+    pathMatch: 'full',
+    redirectTo: () => (inject(AuthService).mayAdministerPlatform() ? 'menages' : 'catalogue'),
+  },
   {
     path: 'catalogue',
     title: 'Catalogue',
@@ -37,6 +45,15 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/household/household-members').then((m) => m.HouseholdMembers),
+  },
+  {
+    // Réservé à l'opérateur de la plateforme. Comme pour « menage », le
+    // garde n'est qu'un confort : Tenants.Api refuse tout autre compte.
+    path: 'menages',
+    title: 'Ménages',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/platform/platform-households').then((m) => m.PlatformHouseholds),
   },
   {
     path: 'connexion',

@@ -1,6 +1,6 @@
 <header class="masthead">
   <div class="masthead-inner">
-    <a class="wordmark" routerLink="/catalogue">Catalogue maison</a>
+    <a class="wordmark" routerLink="/">Catalogue maison</a>
 
     @if (auth.hasHousehold()) {
       <nav>
@@ -14,7 +14,10 @@
           <a routerLink="/menage" routerLinkActive="current">Membres</a>
         }
       </nav>
-
+    } @else if (auth.mayAdministerPlatform()) {
+      <nav>
+        <a routerLink="/menages" routerLinkActive="current">Ménages</a>
+      </nav>
     }
 
     @if (auth.isAuthenticated()) {

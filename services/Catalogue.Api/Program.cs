@@ -1,5 +1,6 @@
 using Catalogue.Api.Features.Films;
 using Catalogue.Api.Features.Medias;
+using Catalogue.Api.Features.Provisioning;
 using Catalogue.Api.Features.Scans;
 using Catalogue.Api.Infrastructure;
 
@@ -13,6 +14,7 @@ app.UseCatalogueApi();
 app.MapMediaEndpoints();
 app.MapScanEndpoints();
 app.MapFilmEndpoints();
+app.MapProvisioningEndpoints();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();

@@ -78,6 +78,11 @@ public static class CatalogueApiRegistration
                 .RequireClaim(ClaimsTenantProvider.ClaimName)
                 .RequireRole(Roles.Adult, Roles.HouseholdAdmin));
 
+            options.AddPolicy(Policies.Provisioning, policy => policy
+                .RequireAuthenticatedUser()
+                .RequireRole(Roles.Provisioning)
+                .RequireAssertion(context => !context.User.HasClaim(c => c.Type == ClaimsTenantProvider.ClaimName)));
+
             // Rien n'est accessible sans ménage, sauf ce qui est explicitement
             // marqué anonyme.
             options.FallbackPolicy = options.GetPolicy(Policies.HouseholdMember);
@@ -85,6 +90,7 @@ public static class CatalogueApiRegistration
 
         services.AddSingleton<TenantConnectionStringFactory>();
         services.AddSingleton<SchemaVersionRegistry>();
+        services.AddScoped<HouseholdSchemaProvisioner>();
 
         services.AddDbContext<CatalogueDbContext>((serviceProvider, options) =>
         {

@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Tenants.Api.Domain;
+using Tenants.Api.Infrastructure.Catalogue;
 using Tenants.Api.Infrastructure.Keycloak;
 using Tenants.Api.Infrastructure.Persistence;
 using Tenants.Api.Infrastructure.Tenancy;
@@ -50,6 +51,8 @@ public sealed class TenantsApiFixture : WebApplicationFactory<Program>, IAsyncLi
 
     public FakeIdentityDirectory Directory { get; } = new();
 
+    public FakeCatalogueProvisioning Catalogue { get; } = new();
+
     public async Task InitializeAsync()
     {
         await _postgres.StartAsync();
@@ -71,14 +74,15 @@ public sealed class TenantsApiFixture : WebApplicationFactory<Program>, IAsyncLi
     public async Task<(Guid AdminA, Guid AdminB)> ResetAsync()
     {
         Directory.Reset();
+        Catalogue.Reset();
 
         await using var db = CreateDbContext();
         await db.Members.ExecuteDeleteAsync();
         await db.Households.ExecuteDeleteAsync();
 
         db.Households.AddRange(
-            new Household { Id = HouseholdA, DisplayName = "Martin", CreatedAt = DateTimeOffset.UtcNow },
-            new Household { Id = HouseholdB, DisplayName = "Durand", CreatedAt = DateTimeOffset.UtcNow });
+            new Household { Id = HouseholdA, DisplayName = "Martin", CreatedAt = DateTimeOffset.UtcNow, Status = HouseholdStatus.Active },
+            new Household { Id = HouseholdB, DisplayName = "Durand", CreatedAt = DateTimeOffset.UtcNow, Status = HouseholdStatus.Active });
 
         var adminA = Directory.Seed("alice", HouseholdA, Roles.Adult, Roles.HouseholdAdmin);
         var adminB = Directory.Seed("bruno", HouseholdB, Roles.Adult, Roles.HouseholdAdmin);
@@ -136,6 +140,8 @@ public sealed class TenantsApiFixture : WebApplicationFactory<Program>, IAsyncLi
         {
             services.RemoveAll<IIdentityDirectory>();
             services.AddSingleton<IIdentityDirectory>(Directory);
+            services.RemoveAll<ICatalogueProvisioning>();
+            services.AddSingleton<ICatalogueProvisioning>(Catalogue);
 
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
@@ -200,6 +206,7 @@ public sealed class FakeIdentityDirectory : IIdentityDirectory
     {
         _accounts.Clear();
         FailNextRoleUpdate = false;
+        FailNextDelete = false;
     }
 
     public Task<IReadOnlyList<DirectoryAccount>> ListByTenantAsync(TenantId tenant, CancellationToken cancellationToken) =>
@@ -277,6 +284,66 @@ public sealed class FakeIdentityDirectory : IIdentityDirectory
         return Task.CompletedTask;
     }
 
+    /// <summary>Faire échouer la prochaine suppression de compte.</summary>
+    public bool FailNextDelete { get; set; }
+
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        if (FailNextDelete)
+        {
+            FailNextDelete = false;
+            throw new IdentityDirectoryException("panne simulée.");
+        }
+
+        _accounts.TryRemove(id, out _);
+        return Task.CompletedTask;
+    }
+
     private static DirectoryAccount ToDirectory(Account a) =>
         new(a.Id, a.Username, a.FirstName, a.LastName, a.Enabled, a.Tenant);
+}
+
+/// <summary>Catalogue.Api simulé : garde trace des schémas demandés, et peut tomber en panne.</summary>
+public sealed class FakeCatalogueProvisioning : ICatalogueProvisioning
+{
+    private readonly ConcurrentQueue<string> _provisioned = new();
+    private readonly ConcurrentQueue<string> _dropped = new();
+
+    /// <summary>Faire échouer le prochain provisionnement.</summary>
+    public bool FailNext { get; set; }
+
+    public IReadOnlyCollection<string> Provisioned => _provisioned;
+
+    public IReadOnlyCollection<string> Dropped => _dropped;
+
+    public void Reset()
+    {
+        _provisioned.Clear();
+        _dropped.Clear();
+        FailNext = false;
+    }
+
+    public Task ProvisionSchemaAsync(TenantId household, CancellationToken cancellationToken)
+    {
+        if (FailNext)
+        {
+            FailNext = false;
+            throw new CatalogueUnavailableException();
+        }
+
+        _provisioned.Enqueue(household.Value);
+        return Task.CompletedTask;
+    }
+
+    public Task DropSchemaAsync(TenantId household, CancellationToken cancellationToken)
+    {
+        if (FailNext)
+        {
+            FailNext = false;
+            throw new CatalogueUnavailableException();
+        }
+
+        _dropped.Enqueue(household.Value);
+        return Task.CompletedTask;
+    }
 }

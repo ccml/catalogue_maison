@@ -11,6 +11,7 @@ import {
   hasHousehold,
   householdOf,
   mayAdministerHousehold,
+  mayAdministerPlatform,
   mayWrite,
   rolesOf,
   type KeycloakClaims,
@@ -60,6 +61,9 @@ export class AuthService {
 
   /** Vrai si l'interface peut proposer d'administrer les membres. L'API tranche vraiment. */
   readonly mayAdministerHousehold = computed(() => mayAdministerHousehold(this.claims()));
+
+  /** Vrai pour l'opérateur, qui administre les ménages. Tenants.Api revérifie. */
+  readonly mayAdministerPlatform = computed(() => mayAdministerPlatform(this.claims()));
 
   constructor() {
     this.manager.events.addUserLoaded((user) => this.user.set(user));

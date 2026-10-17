@@ -6,9 +6,9 @@
 --
 -- `orphelin` n'est volontairement pas inscrit : il n'a pas de ménage.
 
-INSERT INTO households (id, display_name, created_at) VALUES
-  ('martin', 'Martin', now()),
-  ('durand', 'Durand', now())
+INSERT INTO households (id, display_name, created_at, status) VALUES
+  ('martin', 'Martin', now(), 'Active'),
+  ('durand', 'Durand', now(), 'Active')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO members (subject, household_id, username, registered_at) VALUES

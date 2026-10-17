@@ -32,8 +32,16 @@
         "description": "Administre les membres de son menage"
       },
       {
+        "name": "admin-plateforme",
+        "description": "Cree et supprime les menages. Porte par un compte operateur sans menage, jamais par un membre"
+      },
+      {
         "name": "enrichissement",
         "description": "Interroge Metadata.Api. Reserve au compte de service de catalogue-api, jamais a une personne"
+      },
+      {
+        "name": "provisionnement",
+        "description": "Cree le schema d'un menage dans Catalogue.Api. Reserve au compte de service de tenants-api, jamais a une personne"
       }
     ]
   },
@@ -503,7 +511,16 @@
       "serviceAccountsEnabled": true,
       "attributes": {
         "use.refresh.tokens": "false"
-      }
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email",
+        "basic",
+        "catalogue-api-audience"
+      ]
     }
   ],
   "users": [
@@ -519,6 +536,9 @@
       "username": "service-account-tenants-api",
       "enabled": true,
       "serviceAccountClientId": "tenants-api",
+      "realmRoles": [
+        "provisionnement"
+      ],
       "clientRoles": {
         "realm-management": [
           "manage-users",
@@ -618,6 +638,25 @@
       ],
       "realmRoles": [
         "adulte"
+      ]
+    },
+    {
+      "id": "0a11ce00-0000-4000-8000-000000000005",
+      "username": "operateur",
+      "email": "operateur@example.test",
+      "firstName": "Operateur",
+      "lastName": "Plateforme",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dev",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin-plateforme"
       ]
     }
   ]

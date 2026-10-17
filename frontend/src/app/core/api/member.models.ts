@@ -72,7 +72,7 @@ export interface MemberProblem {
 const messages: Readonly<Record<string, string>> = {
   'identifiant-pris': 'Cet identifiant est déjà utilisé. Choisissez-en un autre.',
   'menage-non-inscrit':
-    "Votre ménage n'est pas inscrit au registre : aucun membre ne peut y être ajouté pour l'instant.",
+    "Votre ménage n'est pas actif — sa création n'est pas terminée, ou il a été archivé : ses membres ne peuvent pas être modifiés.",
   'registre-indisponible':
     "Le compte est à jour, mais pas le registre du ménage. Relancez la même opération : elle reprendra où elle s'est arrêtée.",
   'keycloak-indisponible': 'Le service de connexion ne répond pas. Réessayez dans un instant.',

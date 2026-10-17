@@ -20,6 +20,7 @@ export const Roles = {
   adult: 'adulte',
   child: 'enfant',
   householdAdmin: 'admin-menage',
+  platformAdmin: 'admin-plateforme',
 } as const;
 
 /**
@@ -69,4 +70,15 @@ export function mayWrite(claims: KeycloakClaims | null): boolean {
  */
 export function mayAdministerHousehold(claims: KeycloakClaims | null): boolean {
   return hasHousehold(claims) && rolesOf(claims).includes(Roles.householdAdmin);
+}
+
+/**
+ * Vrai si l'interface peut proposer l'administration des ménages eux-mêmes.
+ *
+ * Réservée à l'opérateur : un compte **sans** ménage. Un membre qui porterait
+ * aussi le rôle est refusé par Tenants.Api ; l'interface ne le lui propose
+ * donc pas non plus.
+ */
+export function mayAdministerPlatform(claims: KeycloakClaims | null): boolean {
+  return !hasHousehold(claims) && rolesOf(claims).includes(Roles.platformAdmin);
 }

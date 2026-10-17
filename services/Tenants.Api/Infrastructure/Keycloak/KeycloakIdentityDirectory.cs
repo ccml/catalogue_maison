@@ -159,6 +159,15 @@ public sealed class KeycloakIdentityDirectory(HttpClient http) : IIdentityDirect
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(HttpMethod.Delete, $"users/{id}", null, cancellationToken);
+        if (response.StatusCode != HttpStatusCode.NotFound)
+        {
+            await EnsureSuccessAsync(response, cancellationToken);
+        }
+    }
+
     private static DirectoryAccount ToAccount(UserRepresentation user) => new(
         user.Id,
         user.Username,

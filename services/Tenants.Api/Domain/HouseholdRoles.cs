@@ -22,6 +22,14 @@ public static class Roles
     public const string Child = "enfant";
     public const string HouseholdAdmin = "admin-menage";
 
+    /// <summary>
+    /// Crée et supprime les ménages. Porté par un compte opérateur
+    /// <em>sans</em> ménage, attribué par l'import du realm uniquement :
+    /// volontairement absent de <see cref="Managed"/>, aucun administrateur de
+    /// ménage ne peut l'accorder.
+    /// </summary>
+    public const string PlatformAdmin = "admin-plateforme";
+
     public static readonly IReadOnlySet<string> Managed =
         new HashSet<string>(StringComparer.Ordinal) { Adult, Child, HouseholdAdmin };
 

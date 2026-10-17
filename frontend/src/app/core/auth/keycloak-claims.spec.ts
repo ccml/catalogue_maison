@@ -4,6 +4,7 @@ import {
   hasHousehold,
   householdOf,
   mayAdministerHousehold,
+  mayAdministerPlatform,
   mayWrite,
   rolesOf,
   type KeycloakClaims,
@@ -66,5 +67,22 @@ describe('règles d’affichage tirées des claims', () => {
       mayAdministerHousehold({ ...orphelin, realm_access: { roles: [Roles.householdAdmin] } }),
     ).toBe(false);
     expect(mayAdministerHousehold(null)).toBe(false);
+  });
+
+  it('ne propose l’administration des ménages qu’à l’opérateur sans ménage', () => {
+    const operateur: KeycloakClaims = {
+      preferred_username: 'operateur',
+      realm_access: { roles: [Roles.platformAdmin] },
+    };
+
+    expect(mayAdministerPlatform(operateur)).toBe(true);
+    expect(hasHousehold(operateur)).toBe(false);
+    // Un membre qui porterait aussi le rôle : Tenants.Api le refuse.
+    expect(
+      mayAdministerPlatform({ ...alice, realm_access: { roles: [Roles.adult, Roles.platformAdmin] } }),
+    ).toBe(false);
+    expect(mayAdministerPlatform(alice)).toBe(false);
+    expect(mayAdministerPlatform(orphelin)).toBe(false);
+    expect(mayAdministerPlatform(null)).toBe(false);
   });
 });

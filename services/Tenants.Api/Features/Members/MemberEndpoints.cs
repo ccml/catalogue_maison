@@ -125,7 +125,8 @@ public static class MemberEndpoints
             : throw new InvalidOperationException("Jeton d'administrateur sans « sub » exploitable.");
     }
 
-    private static async ValueTask<object?> TranslateFailuresAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    /// <summary>Traduit les refus de l'administration des membres en réponses HTTP. Partagé avec l'ajout d'un administrateur par l'opérateur.</summary>
+    internal static async ValueTask<object?> TranslateFailuresAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
         try
         {
@@ -167,7 +168,7 @@ public static class MemberEndpoints
         }
     }
 
-    private static ProblemHttpResult Problem(int status, string code, string title, string detail) =>
+    internal static ProblemHttpResult Problem(int status, string code, string title, string detail) =>
         TypedResults.Problem(
             statusCode: status,
             type: $"https://cataloguemaison/errors/{code}",

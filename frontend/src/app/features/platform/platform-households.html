@@ -1,0 +1,241 @@
+<h1>Les ménages</h1>
+<p class="lede">
+  Chaque ménage a son propre catalogue, invisible des autres. Créez-le, puis confiez-le à la
+  personne qui l'administrera : c'est elle qui y ajoutera les autres membres.
+</p>
+
+@if (problem(); as problem) {
+  <p class="notice notice-problem" role="alert">{{ problem.message }}</p>
+}
+@if (confirmation(); as confirmation) {
+  <p class="notice notice-done" role="status">{{ confirmation }}</p>
+}
+
+@if (loading()) {
+  <p class="notice">Lecture des ménages…</p>
+} @else {
+  <ul class="members">
+    @for (household of households(); track household.id) {
+      <li class="member">
+        <div class="identity">
+          <span class="name">{{ household.displayName }}</span>
+          <span class="username">{{ household.id }}</span>
+        </div>
+
+        <div class="tags">
+          @if (statusLabels[household.status]; as label) {
+            <span class="tag" [class.tag-warn]="household.status !== 'Archived'">
+              {{ label }}
+              @if (household.status === 'Archived' && archivedOn(household); as on) {
+                le {{ on }}
+              }
+            </span>
+          }
+          <span class="tag">
+            {{ household.memberCount }} {{ household.memberCount > 1 ? 'membres' : 'membre' }}
+          </span>
+        </div>
+
+        <div class="member-actions">
+          @switch (household.status) {
+            @case ('Provisioning') {
+              <button type="button" [disabled]="busy() !== null" (click)="resume(household)">
+                Reprendre la création
+              </button>
+              <button type="button" [disabled]="busy() !== null" (click)="startPurge(household)">
+                Supprimer
+              </button>
+            }
+            @case ('Active') {
+              <button type="button" [disabled]="busy() !== null" (click)="startAddAdmin(household)">
+                Ajouter un administrateur
+              </button>
+              <button type="button" [disabled]="busy() !== null" (click)="archive(household)">
+                Archiver
+              </button>
+            }
+            @case ('Archiving') {
+              <button type="button" [disabled]="busy() !== null" (click)="archive(household)">
+                Reprendre l'archivage
+              </button>
+              <button type="button" [disabled]="busy() !== null" (click)="restore(household)">
+                Restaurer
+              </button>
+            }
+            @case ('Archived') {
+              <button type="button" [disabled]="busy() !== null" (click)="restore(household)">
+                Restaurer
+              </button>
+              <button type="button" class="danger" [disabled]="busy() !== null" (click)="startPurge(household)">
+                Supprimer définitivement
+              </button>
+            }
+            @case ('Purging') {
+              <button type="button" class="danger" [disabled]="busy() !== null" (click)="startPurge(household)">
+                Reprendre la suppression
+              </button>
+            }
+          }
+        </div>
+
+        @if (purging() === household.id) {
+          <form class="reset purge" [formGroup]="purgeForm" (ngSubmit)="purge(household)" novalidate>
+            <p class="purge-warning">
+              Le catalogue de « {{ household.displayName }} », ses {{ household.memberCount }} compte(s) et
+              son inscription seront supprimés. <strong>C'est irréversible.</strong>
+            </p>
+            <div class="field">
+              <label [for]="'confirmation-' + household.id">
+                Pour confirmer, saisissez l'identifiant <code>{{ household.id }}</code>
+              </label>
+              <input
+                [id]="'confirmation-' + household.id"
+                type="text"
+                autocomplete="off"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
+                formControlName="confirmId"
+              />
+              @if (fieldError('confirmId'); as error) {
+                <p class="field-problem">{{ error }}</p>
+              }
+            </div>
+            <div class="admin-actions">
+              <button
+                type="submit"
+                class="primary danger-primary"
+                [disabled]="busy() !== null || purgeForm.controls.confirmId.value.trim() !== household.id"
+              >
+                Supprimer définitivement
+              </button>
+              <button type="button" (click)="purging.set(null)">Annuler</button>
+            </div>
+          </form>
+        }
+
+        @if (addingAdminTo() === household.id) {
+          <form class="reset admin" [formGroup]="adminForm" (ngSubmit)="addAdmin(household)" novalidate>
+            <div class="pair">
+              <div class="field">
+                <label [for]="'prenom-' + household.id">Prénom</label>
+                <input
+                  [id]="'prenom-' + household.id"
+                  type="text"
+                  autocomplete="off"
+                  formControlName="firstName"
+                  [attr.aria-invalid]="adminForm.controls.firstName.touched && adminForm.controls.firstName.invalid"
+                />
+                @if (fieldError('firstName'); as error) {
+                  <p class="field-problem">{{ error }}</p>
+                }
+              </div>
+              <div class="field">
+                <label [for]="'nom-' + household.id">Nom</label>
+                <input
+                  [id]="'nom-' + household.id"
+                  type="text"
+                  autocomplete="off"
+                  formControlName="lastName"
+                  [attr.aria-invalid]="adminForm.controls.lastName.touched && adminForm.controls.lastName.invalid"
+                />
+                @if (fieldError('lastName'); as error) {
+                  <p class="field-problem">{{ error }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="pair">
+              <div class="field">
+                <label [for]="'identifiant-' + household.id">Identifiant de connexion</label>
+                <input
+                  [id]="'identifiant-' + household.id"
+                  type="text"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  formControlName="username"
+                  [attr.aria-invalid]="adminForm.controls.username.touched && adminForm.controls.username.invalid"
+                />
+                @if (fieldError('username'); as error) {
+                  <p class="field-problem">{{ error }}</p>
+                }
+              </div>
+              <div class="field">
+                <label [for]="'mdp-' + household.id">Mot de passe temporaire</label>
+                <!-- En clair pour être relu, mais sans majuscule ni correction automatiques :
+                     un clavier de téléphone changerait le mot de passe à l'insu de l'administrateur. -->
+                <input
+                  [id]="'mdp-' + household.id"
+                  type="text"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  autocorrect="off"
+                  spellcheck="false"
+                  formControlName="temporaryPassword"
+                  [attr.aria-invalid]="adminForm.controls.temporaryPassword.touched && adminForm.controls.temporaryPassword.invalid"
+                />
+                <span class="hint">Au moins {{ minLength }} caractères. À changer à la première connexion.</span>
+                @if (fieldError('temporaryPassword'); as error) {
+                  <p class="field-problem">{{ error }}</p>
+                }
+              </div>
+            </div>
+
+            <p class="hint">Adulte, et administrateur du ménage.</p>
+            <div class="admin-actions">
+              <button type="submit" class="primary" [disabled]="busy() !== null">Ajouter</button>
+              <button type="button" (click)="addingAdminTo.set(null)">Annuler</button>
+            </div>
+          </form>
+        }
+      </li>
+    } @empty {
+      <li class="notice">Aucun ménage n'est encore inscrit.</li>
+    }
+  </ul>
+}
+
+<h2>Créer un ménage</h2>
+<form class="fiche" [formGroup]="form" (ngSubmit)="create()" novalidate>
+  <div class="field">
+    <label for="nom-affiche">Nom du ménage</label>
+    <input
+      id="nom-affiche"
+      type="text"
+      autocomplete="off"
+      formControlName="displayName"
+      [attr.aria-invalid]="form.controls.displayName.touched && form.controls.displayName.invalid"
+    />
+    <span class="hint">Tel qu'il s'affiche, par exemple « Famille Petit ».</span>
+    @if (fieldError('displayName'); as error) {
+      <p class="field-problem">{{ error }}</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="identifiant-menage">Identifiant</label>
+    <input
+      id="identifiant-menage"
+      type="text"
+      autocomplete="off"
+      autocapitalize="none"
+      spellcheck="false"
+      [maxlength]="idMaxLength"
+      formControlName="id"
+      (input)="markIdEdited()"
+      [attr.aria-invalid]="form.controls.id.touched && form.controls.id.invalid"
+    />
+    <span class="hint">
+      Minuscules sans accent, chiffres et souligné, en commençant par une lettre.
+      <strong>Il ne pourra plus être modifié.</strong>
+    </span>
+    @if (fieldError('id'); as error) {
+      <p class="field-problem">{{ error }}</p>
+    }
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="primary" [disabled]="busy() !== null">Créer le ménage</button>
+  </div>
+</form>

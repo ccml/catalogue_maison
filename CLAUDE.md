@@ -140,6 +140,16 @@ attribut utilisateur, dans un **realm unique** partagé par tous les ménages.
 Pas de realm par ménage. Un jeton sans claim `tenant` exploitable est
 rejeté en 401 : jamais de ménage par défaut, jamais de repli.
 
+**Seule exception : l'opérateur de la plateforme.** Un compte portant le
+rôle de realm `admin-plateforme` et **aucun** claim `tenant` crée et
+supprime les ménages, par les endpoints `/households` de `Tenants.Api`
+(marqués `PlatformEndpoint`), et nulle part ailleurs : partout ailleurs, il
+est rejeté en 401 comme tout compte sans ménage. Il ne voit aucun catalogue.
+Un membre ne cumule pas les deux casquettes : rôle de plateforme **et**
+claim `tenant` donnent un 403. Le rôle n'est attribué que par l'import du
+realm, jamais par `Tenants.Api`. L'identifiant du ménage (= nom de schéma)
+n'est exposé qu'à cet opérateur.
+
 Conséquence assumée : le ménage est **figé dans le jeton à son émission**.
 Changer une personne de ménage n'a d'effet qu'après réémission du jeton —
 donc reconnexion, ou révocation de la session côté Keycloak. C'est le prix
@@ -182,13 +192,37 @@ C'est le coût du schéma-par-ménage, à assumer dès le départ :
 
 - Créer un ménage = créer son schéma, y jouer toutes les migrations et
   l'inscrire dans `Tenants.Api`. Opération explicite, idempotente, pilotée
-  par `Tenants.Api` (voir l'inversion d'écriture ci-dessous).
+  par `Tenants.Api` (voir l'inversion d'écriture ci-dessous) : l'opérateur
+  appelle `POST /households`, `Tenants.Api` inscrit le ménage à l'état
+  `Provisioning`, puis demande le schéma à `Catalogue.Api`
+  (`PUT /admin/households/{id}/schema`, client credentials, rôle de realm
+  `provisionnement` porté par le seul compte de service de `tenants-api`),
+  et ne passe le ménage `Active` qu'après confirmation. Une création
+  interrompue se reprend en la rejouant. Aucun membre n'entre dans un
+  ménage qui n'est pas `Active`. L'identifiant du ménage est **immuable**.
+- Supprimer un ménage se fait **en deux temps**, par l'opérateur :
+  1. **Archiver** (`POST /households/{id}/archive`) — réversible : tous les
+     comptes Keycloak du ménage sont désactivés et leurs sessions fermées,
+     le catalogue est intact. `Archiving` puis `Archived`. La restauration
+     (`/restore`) ne réactive que les comptes inscrits que l'administrateur
+     du ménage n'avait pas désactivés lui-même.
+  2. **Purger** (`POST /households/{id}/purge`, identifiant ressaisi dans
+     le corps) — irréversible, et seulement depuis `Archived` (ou une
+     création abandonnée, `Provisioning`) : `Purging`, puis
+     `DROP SCHEMA … CASCADE` par `Catalogue.Api`, suppression des comptes
+     Keycloak du ménage, puis du registre. Une purge interrompue se reprend,
+     elle ne se restaure pas. L'identifiant n'est libéré qu'à la fin.
+
+  Limite assumée : un jeton d'accès déjà émis reste valide jusqu'à
+  expiration (`accessTokenLifespan`, 5 minutes) après l'archivage. Ne pas
+  « corriger » cela par une consultation du registre à chaque requête.
+  Aucun export du catalogue n'est proposé avant la purge.
 - La configuration du realm (clients, mappers, rôles) est **versionnée dans
   `/keycloak`** et importable. Aucune configuration cliquée à la main qui ne
   soit pas reflétée dans le dépôt.
-- Toute migration EF doit être rejouée sur **tous** les schémas. En attendant
-  que `Tenants.Api` tienne le registre, `tools/dev.sh provision <ménage>`
-  crée un schéma et y applique les migrations, et `tools/dev.sh migrate-all`
+- Toute migration EF doit être rejouée sur **tous** les schémas.
+  `tools/dev.sh provision <ménage>` reste disponible en développement pour
+  créer un schéma hors registre, et `tools/dev.sh migrate-all`
   itère sur les schémas existants. Ne jamais migrer un schéma à la main.
   L'opération s'arrête au premier échec, plutôt que de laisser les ménages
   dans des états différents.

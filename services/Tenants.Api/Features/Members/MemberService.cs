@@ -169,6 +169,7 @@ public sealed class MemberService(
         Caller caller, Guid id, MemberRole role, bool isAdmin, CancellationToken cancellationToken)
     {
         await RequireMemberAsync(caller, id, cancellationToken);
+        await RequireHouseholdAsync(caller, cancellationToken);
 
         if (id == caller.Subject && !isAdmin)
         {
@@ -184,12 +185,14 @@ public sealed class MemberService(
     public async Task ResetPasswordAsync(Caller caller, Guid id, string temporaryPassword, CancellationToken cancellationToken)
     {
         await RequireMemberAsync(caller, id, cancellationToken);
+        await RequireHouseholdAsync(caller, cancellationToken);
         await directory.SetTemporaryPasswordAsync(id, temporaryPassword, cancellationToken);
     }
 
     public async Task<MemberResponse> SetActiveAsync(Caller caller, Guid id, bool active, CancellationToken cancellationToken)
     {
         await RequireMemberAsync(caller, id, cancellationToken);
+        await RequireHouseholdAsync(caller, cancellationToken);
 
         if (id == caller.Subject && !active)
         {
@@ -239,11 +242,16 @@ public sealed class MemberService(
 
     private async Task RequireHouseholdAsync(Caller caller, CancellationToken cancellationToken)
     {
-        if (!await db.Households.AnyAsync(h => h.Id == caller.Tenant.Value, cancellationToken))
+        // Seul un ménage actif s'administre. En création, il n'a pas encore
+        // de catalogue ; archivé, ses comptes ont été désactivés par
+        // l'opérateur, et un jeton d'administrateur encore valide ne doit
+        // pas pouvoir les réactiver.
+        if (!await db.Households.AnyAsync(
+                h => h.Id == caller.Tenant.Value && h.Status == HouseholdStatus.Active, cancellationToken))
         {
             throw new MemberConflictException(
                 "menage-non-inscrit",
-                "Votre ménage n'est pas inscrit au registre : aucun membre ne peut y être inscrit.");
+                "Ce ménage n'est pas actif — pas encore créé, ou archivé : ses membres ne peuvent pas être modifiés.");
         }
     }
 

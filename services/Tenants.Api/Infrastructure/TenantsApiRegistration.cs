@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Tenants.Api.Domain;
+using Tenants.Api.Features.Households;
+using Tenants.Api.Infrastructure.Catalogue;
 using Tenants.Api.Features.Members;
 using Tenants.Api.Infrastructure.Keycloak;
 using Tenants.Api.Infrastructure.Persistence;
@@ -76,6 +78,11 @@ public static class TenantsApiRegistration
                 .RequireClaim(ClaimsTenantProvider.ClaimName)
                 .RequireRole(Roles.HouseholdAdmin));
 
+            options.AddPolicy(Policies.PlatformAdmin, policy => policy
+                .RequireAuthenticatedUser()
+                .RequireRole(Roles.PlatformAdmin)
+                .RequireAssertion(context => !context.User.HasClaim(c => c.Type == ClaimsTenantProvider.ClaimName)));
+
             // Rien n'est accessible sans ménage, sauf ce qui est explicitement
             // marqué anonyme.
             options.FallbackPolicy = options.GetPolicy(Policies.HouseholdMember);
@@ -99,6 +106,7 @@ public static class TenantsApiRegistration
         AddIdentityDirectory(services, configuration);
 
         services.AddScoped<MemberService>();
+        services.AddScoped<HouseholdService>();
         services.AddProblemDetails();
 
         return services;
@@ -121,6 +129,20 @@ public static class TenantsApiRegistration
                 http.BaseAddress = options.BaseUrl
                     ?? throw new InvalidOperationException("« KeycloakAdmin:BaseUrl » est requis.");
                 http.Timeout = timeout;
+            })
+            .AddHttpMessageHandler<ServiceTokenHandler>();
+
+        // Même jeton de service que pour Keycloak : c'est lui qui porte le
+        // rôle de provisionnement et l'audience catalogue-api.
+        services.Configure<CatalogueOptions>(configuration.GetSection(CatalogueOptions.Section));
+        var catalogue = configuration.GetSection(CatalogueOptions.Section).Get<CatalogueOptions>() ?? new CatalogueOptions();
+
+        services.AddHttpClient<ICatalogueProvisioning, CatalogueProvisioningClient>(http =>
+            {
+                http.BaseAddress = catalogue.BaseUrl
+                    ?? throw new InvalidOperationException("« Catalogue:BaseUrl » est requis.");
+                // Jouer les migrations d'un schéma neuf prend plus qu'un appel ordinaire.
+                http.Timeout = TimeSpan.FromSeconds(catalogue.TimeoutSeconds);
             })
             .AddHttpMessageHandler<ServiceTokenHandler>();
     }

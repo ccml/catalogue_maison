@@ -36,6 +36,9 @@ public interface IIdentityDirectory
 
     /// <summary>Révoque toutes les sessions du compte.</summary>
     Task SignOutEverywhereAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>Supprime le compte. Idempotent : un compte déjà absent n'est pas une erreur.</summary>
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken);
 }
 
 public sealed record DirectoryAccount(

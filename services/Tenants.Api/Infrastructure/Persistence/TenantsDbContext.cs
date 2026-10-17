@@ -30,6 +30,10 @@ public sealed class TenantsDbContext(DbContextOptions<TenantsDbContext> options)
         household.Property(h => h.Id).HasMaxLength(48);
         household.Property(h => h.DisplayName).HasMaxLength(120).IsRequired();
         household.Property(h => h.CreatedAt).IsRequired();
+        // Pas de valeur par défaut dans le modèle : l'état est toujours
+        // écrit explicitement, un ménage ne devient jamais actif par omission.
+        household.Property(h => h.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
+        household.Property(h => h.ArchivedAt);
 
         var member = modelBuilder.Entity<Member>();
 
@@ -57,6 +61,38 @@ public sealed class Household
     public required string DisplayName { get; set; }
 
     public DateTimeOffset CreatedAt { get; init; }
+
+    public HouseholdStatus Status { get; set; }
+
+    /// <summary>Renseigné dès le début de l'archivage, effacé à la restauration.</summary>
+    public DateTimeOffset? ArchivedAt { get; set; }
+}
+
+/// <summary>
+/// Où en est la création d'un ménage. Elle est séquencée — registre, puis
+/// schéma du catalogue — et un ménage reste <see cref="Provisioning"/> tant
+/// que la seconde étape n'a pas abouti : l'état est visible, et l'opération
+/// se reprend.
+/// </summary>
+public enum HouseholdStatus
+{
+    /// <summary>Inscrit au registre, schéma du catalogue pas encore confirmé. Aucun membre ne peut y être ajouté.</summary>
+    Provisioning,
+
+    /// <summary>Schéma du catalogue provisionné : le ménage peut recevoir ses membres.</summary>
+    Active,
+
+    /// <summary>Archivage commencé : ses comptes sont en cours de désactivation. Se reprend.</summary>
+    Archiving,
+
+    /// <summary>
+    /// Comptes désactivés et sessions fermées ; catalogue intact. Réversible
+    /// par la restauration, ou étape préalable à la purge.
+    /// </summary>
+    Archived,
+
+    /// <summary>Purge commencée : catalogue, comptes et registre sont en cours de suppression. Se reprend, ne s'annule pas.</summary>
+    Purging
 }
 
 /// <summary>Rattachement d'un compte Keycloak à un ménage.</summary>

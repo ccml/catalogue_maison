@@ -19,6 +19,9 @@ public sealed class SchemaVersionRegistry
     public bool IsKnownUpToDate(TenantId tenant) => _upToDate.ContainsKey(tenant.Value);
 
     public void MarkUpToDate(TenantId tenant) => _upToDate[tenant.Value] = true;
+
+    /// <summary>Après suppression du schéma : le prochain accès revérifie.</summary>
+    public void Forget(TenantId tenant) => _upToDate.TryRemove(tenant.Value, out _);
 }
 
 /// <summary>

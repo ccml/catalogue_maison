@@ -3,6 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { APP_SETTINGS } from '../app-settings';
 import type {
+  CreateHouseholdAdminRequest,
+  CreateHouseholdRequest,
+  Household,
+} from './household.models';
+import type {
   CreateMemberRequest,
   Inconsistencies,
   Member,
@@ -10,11 +15,12 @@ import type {
 } from './member.models';
 
 /**
- * Client de Tenants.Api : administration des membres du ménage.
+ * Client de Tenants.Api : administration des membres du ménage, et des
+ * ménages eux-mêmes pour l'opérateur.
  *
  * Toute création ou modification de compte passe par ici, jamais par la
- * console Keycloak. Le ménage n'apparaît dans aucun appel : l'API prend
- * celui du jeton de l'administrateur.
+ * console Keycloak. Pour les membres, le ménage n'apparaît dans aucun
+ * appel : l'API prend celui du jeton de l'administrateur.
  */
 @Injectable({ providedIn: 'root' })
 export class TenantsApi {
@@ -60,5 +66,42 @@ export class TenantsApi {
   /** Retire une entrée du registre dont le compte a disparu ou quitté le ménage. */
   removeRegistryEntry(subject: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/members/${subject}/registry-entry`);
+  }
+
+  // Administration des ménages, réservée à l'opérateur. Ici seulement, le
+  // ménage est désigné par l'URL : l'opérateur n'en a pas dans son jeton.
+
+  households(): Observable<readonly Household[]> {
+    return this.http.get<readonly Household[]>(`${this.baseUrl}/households`);
+  }
+
+  /** Rejouable : une création interrompue reprend le ménage resté en cours. */
+  createHousehold(request: CreateHouseholdRequest): Observable<Household> {
+    return this.http.post<Household>(`${this.baseUrl}/households`, request);
+  }
+
+  /** Désactive les comptes du ménage. Réversible ; rejouable s'il a été interrompu. */
+  archiveHousehold(householdId: string): Observable<Household> {
+    return this.http.post<Household>(`${this.householdUrl(householdId)}/archive`, null);
+  }
+
+  restoreHousehold(householdId: string): Observable<Household> {
+    return this.http.post<Household>(`${this.householdUrl(householdId)}/restore`, null);
+  }
+
+  /**
+   * Supprime définitivement le ménage et son catalogue. L'identifiant doit
+   * être ressaisi : l'API refuse sinon.
+   */
+  purgeHousehold(householdId: string, confirmId: string): Observable<void> {
+    return this.http.post<void>(`${this.householdUrl(householdId)}/purge`, { confirmId });
+  }
+
+  addHouseholdAdmin(householdId: string, request: CreateHouseholdAdminRequest): Observable<Member> {
+    return this.http.post<Member>(`${this.householdUrl(householdId)}/admins`, request);
+  }
+
+  private householdUrl(householdId: string): string {
+    return `${this.baseUrl}/households/${encodeURIComponent(householdId)}`;
   }
 }

@@ -124,6 +124,16 @@ Le compte de service `service-account-tenants-api` détient `manage-users`,
 tous les rôles du realm, `enrichissement` compris : c'est Tenants.Api qui
 borne ce qu'il attribue à `adulte`, `enfant` et `admin-menage`.
 
+Ce compte porte aussi le rôle de realm `provisionnement`, et son jeton
+l'audience `catalogue-api` (scope `catalogue-api-audience` parmi les scopes
+par défaut du client `tenants-api`) : c'est ainsi que Tenants.Api fait créer
+le schéma d'un nouveau ménage par Catalogue.Api. Le jeton ne porte aucun
+claim `tenant`, et Catalogue.Api refuse ce rôle s'il en porte un.
+
+Le rôle `admin-plateforme` (compte `operateur`) ouvre l'administration des
+ménages eux-mêmes, dans Tenants.Api seulement. Ni `provisionnement` ni
+`admin-plateforme` ne font partie des rôles que Tenants.Api attribue.
+
 Le frontend reçoit l'audience `tenants-api` (scope `tenants-api-audience`
 parmi les scopes par défaut de `catalogue-frontend`) : un même jeton
 d'accès sert aux deux API, chacune n'acceptant que sa propre audience.
@@ -182,6 +192,11 @@ produirait des comptes que le registre ne reconnaîtrait plus.
 | `theo` | `martin` | enfant | vérifier les règles par rôle |
 | `bruno` | `durand` | adulte, admin-ménage | **test d'isolation** : ne doit rien voir du ménage `martin` |
 | `orphelin` | *aucun* | adulte | vérifier qu'un jeton sans claim `tenant` est bien rejeté en 401 |
+| `operateur` | *aucun* | admin-plateforme | administrer les ménages (`/households` de Tenants.Api) |
+
+`operateur` n'est pas inscrit au registre : il n'appartient à aucun ménage,
+et c'est voulu. Le rôle `admin-plateforme` n'est attribué que par cet import,
+jamais par Tenants.Api.
 
 `orphelin` et `bruno` ne sont pas des comptes de confort : ils sont les
 témoins des deux garde-fous du modèle multitenant. Ne pas les supprimer.

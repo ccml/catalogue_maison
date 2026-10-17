@@ -11,6 +11,13 @@ public static class Policies
 
     /// <summary>Écrire dans le catalogue du ménage.</summary>
     public const string CatalogueWrite = "catalogue-write";
+
+    /// <summary>
+    /// Créer le schéma d'un ménage. Réservé au compte de service de
+    /// Tenants.Api : rôle de provisionnement, et <strong>aucun</strong> claim
+    /// <c>tenant</c>.
+    /// </summary>
+    public const string Provisioning = "provisioning";
 }
 
 /// <summary>Rôles de realm Keycloak, versionnés dans <c>/keycloak</c>.</summary>
@@ -19,4 +26,7 @@ public static class Roles
     public const string Adult = "adulte";
     public const string Child = "enfant";
     public const string HouseholdAdmin = "admin-menage";
+
+    /// <summary>Attribué au seul compte de service de Tenants.Api, jamais à une personne.</summary>
+    public const string Provisioning = "provisionnement";
 }
