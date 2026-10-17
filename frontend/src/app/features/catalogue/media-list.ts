@@ -62,10 +62,10 @@ export class MediaList implements OnInit {
   protected attribution(media: MediaSummary): string {
     const parts: string[] = [];
 
-    if (media.creator !== null) {
+    if (media.creator) {
       parts.push(media.creator);
     }
-    if (media.year !== null) {
+    if (media.year != null) {
       parts.push(String(media.year));
     }
 

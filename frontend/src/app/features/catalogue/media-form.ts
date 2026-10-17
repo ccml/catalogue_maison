@@ -412,14 +412,14 @@ export class MediaForm implements OnInit {
   }
 
   private remplis(media: MediaDetail): void {
-    const champs = specificsToFields(media.specifics);
+    const champs = specificsToFields(media.specifics ?? null);
     const nombre = (valeur: number | null): string => (valeur === null ? '' : String(valeur));
 
     this.form.setValue({
       type: media.type,
       title: media.title,
       creator: media.creator ?? '',
-      year: nombre(media.year),
+      year: nombre(media.year ?? null),
       location: media.location ?? '',
       isbn: champs.isbn,
       publisher: champs.publisher,

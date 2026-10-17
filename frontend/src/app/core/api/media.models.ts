@@ -72,19 +72,24 @@ export type MediaSpecifics =
   | FilmSpecifics
   | GameSpecifics;
 
+/**
+ * L'API omet les champs nuls : un média saisi avec son seul titre arrive sans
+ * `creator`, `year` ni `location`. Ces champs sont donc facultatifs, et se
+ * lisent avec `?? null`.
+ */
 export interface MediaSummary {
   readonly id: string;
   readonly type: MediaType;
   readonly title: string;
-  readonly creator: string | null;
-  readonly year: number | null;
-  readonly location: string | null;
+  readonly creator?: string | null;
+  readonly year?: number | null;
+  readonly location?: string | null;
   readonly isLent: boolean;
   readonly addedAt: string;
 }
 
 export interface MediaDetail extends MediaSummary {
-  readonly specifics: MediaSpecifics | null;
+  readonly specifics?: MediaSpecifics | null;
 }
 
 export interface Paged<T> {

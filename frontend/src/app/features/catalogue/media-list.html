@@ -68,7 +68,7 @@
           <div class="item-aside">
             @if (media.isLent) {
               <span class="lent">Prêté</span>
-            } @else if (media.location !== null) {
+            } @else if (media.location) {
               <span class="where">{{ media.location }}</span>
             }
 
