@@ -6,6 +6,7 @@ describe('relayedSettings', () => {
     const settings = relayedSettings('https://192.168.1.25:4443');
 
     expect(settings.apiBaseUrl).toBe('https://192.168.1.25:4443/api');
+    expect(settings.tenantsApiBaseUrl).toBe('https://192.168.1.25:4443/tenants-api');
     expect(settings.oidc.authority).toBe('https://192.168.1.25:4443/realms/maison');
   });
 

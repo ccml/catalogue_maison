@@ -30,6 +30,15 @@ export const routes: Routes = [
     loadComponent: () => import('./features/catalogue/media-form').then((m) => m.MediaForm),
   },
   {
+    // Réservé à l'administrateur du ménage. Le garde n'est qu'un confort :
+    // Tenants.Api refuse de toute façon un compte qui n'a pas le rôle.
+    path: 'menage',
+    title: 'Membres du ménage',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/household/household-members').then((m) => m.HouseholdMembers),
+  },
+  {
     path: 'connexion',
     title: 'Connexion',
     loadComponent: () => import('./features/auth/sign-in').then((m) => m.SignIn),

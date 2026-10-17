@@ -10,6 +10,7 @@ import { APP_SETTINGS } from '../app-settings';
 import {
   hasHousehold,
   householdOf,
+  mayAdministerHousehold,
   mayWrite,
   rolesOf,
   type KeycloakClaims,
@@ -56,6 +57,9 @@ export class AuthService {
 
   /** Vrai si l'interface peut proposer d'écrire. L'API tranche vraiment. */
   readonly mayWrite = computed(() => mayWrite(this.claims()));
+
+  /** Vrai si l'interface peut proposer d'administrer les membres. L'API tranche vraiment. */
+  readonly mayAdministerHousehold = computed(() => mayAdministerHousehold(this.claims()));
 
   constructor() {
     this.manager.events.addUserLoaded((user) => this.user.set(user));

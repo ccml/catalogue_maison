@@ -10,6 +10,9 @@
         @if (auth.mayWrite()) {
           <a routerLink="/catalogue/ajouter" routerLinkActive="current">Ajouter</a>
         }
+        @if (auth.mayAdministerHousehold()) {
+          <a routerLink="/menage" routerLinkActive="current">Membres</a>
+        }
       </nav>
 
     }

@@ -17,6 +17,7 @@ COMPOSE="docker compose -f $ROOT/docker/docker-compose.yml"
 SOLUTION="$ROOT/CatalogueMaison.slnx"
 API="$ROOT/services/Catalogue.Api"
 METADATA="$ROOT/services/Metadata.Api"
+TENANTS="$ROOT/services/Tenants.Api"
 
 # Relais HTTPS du frontend, pour l'essayer depuis un téléphone (front-lan).
 LAN_PORT=4443
@@ -41,6 +42,10 @@ Usage: tools/dev.sh <commande>
   metadata        Démarre Metadata.Api sur http://localhost:5081
   metadata-migration <nom>  Génère une migration EF de Metadata.Api
   metadata-migrate          Applique les migrations à la base metadata
+  tenants         Démarre Tenants.Api sur http://localhost:5082
+  tenants-migration <nom>   Génère une migration EF de Tenants.Api
+  tenants-migrate           Applique les migrations à la base tenants, puis
+                            y inscrit les ménages et comptes de développement
   front           Compile le frontend et lance ses tests
   front-start     Démarre le frontend en développement
   front-lan       Démarre le frontend en HTTPS sur le réseau local, pour un
@@ -66,6 +71,16 @@ households() {
       where schema_name not in ('public','information_schema')
         and schema_name not like 'pg_%'
       order by schema_name"
+}
+
+# Un jeton obtenu à travers le relais HTTPS porte l'origine vue par le
+# téléphone comme issuer. On l'ajoute aux issuers acceptés, par
+# l'environnement : l'adresse de ce poste n'a rien à faire dans le dépôt.
+lan_issuer() {
+  if [ -n "$LAN_IP" ]; then
+    export Keycloak__AdditionalIssuers__0="https://$LAN_IP:$LAN_PORT/realms/maison"
+    echo "--- issuer accepté en plus : $Keycloak__AdditionalIssuers__0" | tee -a "$LOG"
+  fi
 }
 
 mkdir -p "$LOGS"
@@ -116,14 +131,23 @@ case "${1:-}" in
     run $COMPOSE rm -sf keycloak && run $COMPOSE up -d keycloak
     ;;
   api)
-    # Un jeton obtenu à travers le relais HTTPS porte l'origine vue par le
-    # téléphone comme issuer. On l'ajoute aux issuers acceptés, par
-    # l'environnement : l'adresse de ce poste n'a rien à faire dans le dépôt.
-    if [ -n "$LAN_IP" ]; then
-      export Keycloak__AdditionalIssuers__0="https://$LAN_IP:$LAN_PORT/realms/maison"
-      echo "--- issuer accepté en plus : $Keycloak__AdditionalIssuers__0" | tee -a "$LOG"
-    fi
+    lan_issuer
     run dotnet run --project "$API"
+    ;;
+  tenants)
+    lan_issuer
+    run dotnet run --project "$TENANTS"
+    ;;
+  tenants-migration)
+    [ -n "${2:-}" ] || { echo "Nom de migration manquant." | tee -a "$LOG"; exit 2; }
+    run dotnet ef migrations add "$2" --project "$TENANTS" --output-dir Infrastructure/Persistence/Migrations
+    ;;
+  tenants-migrate)
+    # Une seule base, non partitionnée : le registre est ce qu'on lit avant
+    # de savoir quel schéma adresser.
+    run dotnet ef database update --project "$TENANTS" \
+      && run $COMPOSE exec -T postgres psql -U maison -d tenants -v ON_ERROR_STOP=1 \
+           -f - < "$ROOT/tools/tenants-dev-seed.sql"
     ;;
   metadata)      run dotnet run --project "$METADATA" ;;
   metadata-migration)

@@ -62,3 +62,11 @@ export function mayWrite(claims: KeycloakClaims | null): boolean {
   const roles = rolesOf(claims);
   return roles.includes(Roles.adult) || roles.includes(Roles.householdAdmin);
 }
+
+/**
+ * Vrai si l'interface peut proposer l'administration des membres du ménage.
+ * Tenants.Api revérifie le rôle et le ménage à chaque requête.
+ */
+export function mayAdministerHousehold(claims: KeycloakClaims | null): boolean {
+  return hasHousehold(claims) && rolesOf(claims).includes(Roles.householdAdmin);
+}

@@ -1,0 +1,224 @@
+<h1>Les membres du ménage</h1>
+<p class="lede">
+  Les comptes de votre ménage, et leur place. Un changement de place prend effet à la prochaine
+  connexion de la personne.
+</p>
+
+@if (problem(); as problem) {
+  <p class="notice notice-problem" role="alert">{{ problem.message }}</p>
+}
+@if (confirmation(); as confirmation) {
+  <p class="notice notice-done" role="status">{{ confirmation }}</p>
+}
+
+@if (inconsistencies(); as report) {
+  @if (!loading() && hasInconsistencies(report)) {
+    <section class="gaps" aria-labelledby="ecarts">
+      <h2 id="ecarts">Écarts avec le registre du ménage</h2>
+      <p class="gaps-lede">
+        Le service de connexion et le registre du ménage ne disent pas la même chose. Rien n'est
+        corrigé sans vous : choisissez, pour chaque écart, ce qui est juste.
+      </p>
+
+      <ul class="gap-list">
+        @for (member of report.unregisteredAccounts; track member.id) {
+          <li class="gap">
+            <div class="gap-text">
+              <span class="name">{{ fullName(member) }}</span>
+              <span class="username">{{ member.username }}</span>
+              <span class="why">
+                Ce compte est rattaché au ménage, mais absent de son registre.
+              </span>
+            </div>
+            <button type="button" [disabled]="busy() !== null" (click)="register(member)">
+              Inscrire au registre
+            </button>
+          </li>
+        }
+        @for (entry of report.orphanEntries; track entry.subject) {
+          <li class="gap">
+            <div class="gap-text">
+              <span class="name username">{{ entry.username }}</span>
+              <span class="why">Inscrit au registre. {{ orphanLabels[entry.reason] }}</span>
+            </div>
+            <button type="button" [disabled]="busy() !== null" (click)="removeEntry(entry)">
+              Retirer du registre
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+}
+
+@if (loading()) {
+  <p class="notice">Lecture des membres…</p>
+} @else {
+  <ul class="members">
+    @for (member of members(); track member.id) {
+      <li class="member" [class.disabled]="!member.enabled">
+        <div class="identity">
+          <span class="name">
+            {{ fullName(member) }}
+            @if (member.isSelf) {
+              <span class="self">(vous)</span>
+            }
+          </span>
+          <span class="username">{{ member.username }}</span>
+        </div>
+
+        <div class="tags">
+          <span class="tag">{{ roleLabels[member.role] }}</span>
+          @if (member.isAdmin) {
+            <span class="tag">Administre le ménage</span>
+          }
+          @if (!member.enabled) {
+            <span class="tag tag-warn">Désactivé</span>
+          }
+          @if (!member.registered) {
+            <span
+              class="tag tag-warn"
+              title="Ce compte est rattaché au ménage dans le service de connexion, mais absent du registre du ménage."
+            >
+              Hors registre
+            </span>
+          }
+        </div>
+
+        <div class="member-actions">
+          @if (member.role === 'Child') {
+            <button type="button" [disabled]="busy() !== null" (click)="changeRole(member, 'Adult', false)">
+              Passer adulte
+            </button>
+          } @else if (!member.isSelf) {
+            @if (member.isAdmin) {
+              <button type="button" [disabled]="busy() !== null" (click)="changeRole(member, 'Adult', false)">
+                Retirer l'administration
+              </button>
+            } @else {
+              <button type="button" [disabled]="busy() !== null" (click)="changeRole(member, 'Adult', true)">
+                Confier l'administration
+              </button>
+              <button type="button" [disabled]="busy() !== null" (click)="changeRole(member, 'Child', false)">
+                Passer enfant
+              </button>
+            }
+          }
+          <button type="button" [disabled]="busy() !== null" (click)="startReset(member)">
+            Nouveau mot de passe
+          </button>
+          @if (!member.isSelf) {
+            <button type="button" [disabled]="busy() !== null" (click)="toggleActive(member)">
+              {{ member.enabled ? 'Désactiver' : 'Réactiver' }}
+            </button>
+          }
+        </div>
+
+        @if (resetting() === member.id) {
+          <form class="reset" [formGroup]="passwordForm" (ngSubmit)="resetPassword(member)" novalidate>
+            <div class="field">
+              <label [for]="'mdp-' + member.id">Mot de passe temporaire</label>
+              <input
+                [id]="'mdp-' + member.id"
+                type="text"
+                autocomplete="off"
+                formControlName="temporaryPassword"
+                [attr.aria-invalid]="passwordForm.controls.temporaryPassword.touched && passwordForm.controls.temporaryPassword.invalid"
+              />
+              <span class="hint">Au moins {{ minLength }} caractères. Il devra en changer à la connexion.</span>
+            </div>
+            <button type="submit" class="primary" [disabled]="busy() !== null">Remplacer</button>
+            <button type="button" (click)="resetting.set(null)">Annuler</button>
+          </form>
+        }
+      </li>
+    } @empty {
+      <li class="notice">Aucun compte n'est rattaché à ce ménage.</li>
+    }
+  </ul>
+}
+
+<h2>Ajouter un membre</h2>
+<form class="fiche" [formGroup]="form" (ngSubmit)="create()" novalidate>
+  <div class="pair">
+    <div class="field">
+      <label for="prenom">Prénom</label>
+      <input
+        id="prenom"
+        type="text"
+        autocomplete="off"
+        formControlName="firstName"
+        [attr.aria-invalid]="form.controls.firstName.touched && form.controls.firstName.invalid"
+      />
+      @if (fieldError('firstName'); as error) {
+        <p class="field-problem">{{ error }}</p>
+      }
+    </div>
+    <div class="field">
+      <label for="nom">Nom</label>
+      <input
+        id="nom"
+        type="text"
+        autocomplete="off"
+        formControlName="lastName"
+        [attr.aria-invalid]="form.controls.lastName.touched && form.controls.lastName.invalid"
+      />
+      @if (fieldError('lastName'); as error) {
+        <p class="field-problem">{{ error }}</p>
+      }
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="identifiant">Identifiant de connexion</label>
+    <input
+      id="identifiant"
+      type="text"
+      autocomplete="off"
+      autocapitalize="none"
+      spellcheck="false"
+      formControlName="username"
+      [attr.aria-invalid]="form.controls.username.touched && form.controls.username.invalid"
+    />
+    <span class="hint">3 à 50 caractères : lettres, chiffres, point, tiret ou souligné.</span>
+    @if (fieldError('username'); as error) {
+      <p class="field-problem">{{ error }}</p>
+    }
+  </div>
+
+  <fieldset>
+    <legend>Place dans le ménage</legend>
+    <div class="choices">
+      <label class="choice"><input type="radio" formControlName="role" value="Adult" /> Adulte</label>
+      <label class="choice"><input type="radio" formControlName="role" value="Child" /> Enfant</label>
+      <label class="choice">
+        <input type="checkbox" formControlName="isAdmin" /> Administre aussi le ménage
+      </label>
+    </div>
+    @if (fieldError('isAdmin'); as error) {
+      <p class="field-problem">{{ error }}</p>
+    }
+  </fieldset>
+
+  <div class="field">
+    <label for="mot-de-passe">Mot de passe temporaire</label>
+    <input
+      id="mot-de-passe"
+      type="text"
+      autocomplete="off"
+      formControlName="temporaryPassword"
+      [attr.aria-invalid]="form.controls.temporaryPassword.touched && form.controls.temporaryPassword.invalid"
+    />
+    <span class="hint">
+      Au moins {{ minLength }} caractères. À communiquer à la personne : il lui sera demandé d'en
+      choisir un autre dès sa première connexion.
+    </span>
+    @if (fieldError('temporaryPassword'); as error) {
+      <p class="field-problem">{{ error }}</p>
+    }
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="primary" [disabled]="busy() !== null">Ajouter au ménage</button>
+  </div>
+</form>

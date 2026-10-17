@@ -3,6 +3,7 @@ import {
   Roles,
   hasHousehold,
   householdOf,
+  mayAdministerHousehold,
   mayWrite,
   rolesOf,
   type KeycloakClaims,
@@ -56,5 +57,14 @@ describe('règles d’affichage tirées des claims', () => {
   it('ne suppose aucun rôle quand le jeton n’en porte pas', () => {
     expect(rolesOf({ tenant: 'martin' })).toEqual([]);
     expect(mayWrite({ tenant: 'martin' })).toBe(false);
+  });
+
+  it('ne propose l’administration du ménage qu’à son administrateur rattaché', () => {
+    expect(mayAdministerHousehold(alice)).toBe(true);
+    expect(mayAdministerHousehold(theo)).toBe(false);
+    expect(
+      mayAdministerHousehold({ ...orphelin, realm_access: { roles: [Roles.householdAdmin] } }),
+    ).toBe(false);
+    expect(mayAdministerHousehold(null)).toBe(false);
   });
 });

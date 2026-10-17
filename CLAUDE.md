@@ -349,9 +349,31 @@ Deux chemins d'entrée, les deux doivent rester fonctionnels :
 - Pas de `any`.
 
 ### Général
-- Messages de commit en français, à l'impératif.
+- **Ne pas s'occuper de git** : ni commit, ni branche, ni push, et ne pas
+  le proposer en fin de tâche. Le développeur gère git lui-même ; les
+  modifications restent dans l'arbre de travail.
+- Messages de commit en français, à l'impératif (pour le développeur).
 - Tests : xUnit côté .NET, Vitest/Jest côté Angular. Toute règle métier
   non triviale est testée.
+
+### Accès depuis un smartphone
+L'application doit rester utilisable **depuis l'IP du Mac sur le réseau
+local**, pour être essayée sur un smartphone (caméra comprise pour le
+scan). Le chemin est le relais HTTPS du frontend, `tools/dev.sh front-lan`
+(port 4443) : le téléphone ne joint que cette origine, qui relaie les API et
+Keycloak.
+
+Toute évolution doit préserver ce chemin :
+
+- Une nouvelle Web API appelée par le frontend reçoit une entrée dans
+  `frontend/proxy.lan.json` et une URL relative dans `relayedSettings`
+  (`frontend/src/app/core/app-settings.ts`), comme `/api` et
+  `/tenants-api`.
+- Elle accepte en plus l'issuer vu par le téléphone : sa commande
+  `tools/dev.sh` appelle `lan_issuer`, qui le fournit par l'environnement.
+  Jamais d'adresse IP en dur dans le dépôt.
+- Une fonctionnalité n'est pas terminée tant qu'elle ne fonctionne pas
+  aussi par ce relais.
 
 ## Commandes
 
@@ -368,6 +390,8 @@ docker compose -f docker/docker-compose.yml restart keycloak
 dotnet run --project services/Catalogue.Api
 tools/dev.sh metadata            # Metadata.Api sur :5081
 tools/dev.sh metadata-migrate    # migrations du cache (base metadata, non partitionnée)
+tools/dev.sh tenants             # Tenants.Api sur :5082
+tools/dev.sh tenants-migrate     # migrations du registre + inscription des comptes de dev
 dotnet ef database update --project services/Catalogue.Api
 dotnet test
 

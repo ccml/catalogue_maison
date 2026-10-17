@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 
 const settings: AppSettings = {
   apiBaseUrl: 'http://catalogue.test',
+  tenantsApiBaseUrl: 'http://tenants.test',
   oidc: { authority: 'http://keycloak.test/realms/maison', clientId: 'catalogue-frontend' },
 };
 
@@ -35,6 +36,24 @@ describe('authInterceptor', () => {
     const requete = backend.expectOne(`${settings.apiBaseUrl}/medias`);
     expect(requete.request.headers.get('Authorization')).toBe('Bearer jeton-de-test');
     requete.flush({ items: [], total: 0, page: 1, size: 50 });
+  });
+
+  it("joint le jeton aux appels vers l'administration du ménage", () => {
+    http.get(`${settings.tenantsApiBaseUrl}/members`).subscribe();
+
+    const requete = backend.expectOne(`${settings.tenantsApiBaseUrl}/members`);
+    expect(requete.request.headers.get('Authorization')).toBe('Bearer jeton-de-test');
+    requete.flush([]);
+  });
+
+  it("ne se laisse pas abuser par une origine qui commence comme celle d'une API", () => {
+    // « http://catalogue.test.exemple.com » commence par apiBaseUrl : seul
+    // un chemin sous l'origine exacte reçoit le jeton.
+    http.get('http://catalogue.test.exemple.com/medias').subscribe();
+
+    const requete = backend.expectOne('http://catalogue.test.exemple.com/medias');
+    expect(requete.request.headers.has('Authorization')).toBe(false);
+    requete.flush('');
   });
 
   it("n'envoie le jeton à aucune autre origine", () => {

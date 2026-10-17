@@ -97,6 +97,37 @@ Le ménage vit dans l'attribut utilisateur `tenant`, exposé dans le jeton par
 le protocol mapper du client scope `tenant`, inclus par défaut dans tous les
 clients. C'est le **seul** endroit où un service lit le ménage.
 
+### Profil utilisateur : `tenant` est déclaré, et réservé aux administrateurs
+
+Depuis Keycloak 24, le profil utilisateur est déclaratif, et un attribut
+qu'il ne déclare pas est **ignoré** par l'Admin REST API : un compte créé par
+Tenants.Api avec `tenant` en sortirait sans ménage. L'import, lui, passe
+outre — d'où des comptes de développement qui fonctionnaient sans que la
+création par l'API soit possible.
+
+Le profil est donc versionné ici (composant `declarative-user-profile`,
+clé `kc.user.profile.config`). Il reprend le profil par défaut relevé sur
+une instance neuve, avec deux écarts :
+
+- `tenant` est déclaré, avec la même règle de forme que `TenantId`
+  (`^[a-z][a-z0-9_]*$`, 48 caractères), et des permissions **`admin`
+  seulement** en lecture comme en écriture. Un utilisateur ne le voit pas
+  dans la console de compte, et surtout ne peut pas le modifier : sinon il
+  choisirait son ménage.
+- `email` n'est plus exigé : aucun serveur de courriel, et des enfants sans
+  adresse. Exigé, il ferait réclamer une adresse à chaque première connexion.
+
+### Création des comptes : par Tenants.Api seulement
+
+Le compte de service `service-account-tenants-api` détient `manage-users`,
+`view-users` et `query-users` sur `realm-management`, et rien d'autre. Il voit
+tous les rôles du realm, `enrichissement` compris : c'est Tenants.Api qui
+borne ce qu'il attribue à `adulte`, `enfant` et `admin-menage`.
+
+Le frontend reçoit l'audience `tenants-api` (scope `tenants-api-audience`
+parmi les scopes par défaut de `catalogue-frontend`) : un même jeton
+d'accès sert aux deux API, chacune n'acceptant que sa propre audience.
+
 ### Clients
 
 | Client | Type | Rôle |
@@ -139,7 +170,11 @@ ne doivent jamais servir ailleurs qu'en local.
 
 ### Comptes de développement
 
-Tous avec le mot de passe `dev`.
+Tous avec le mot de passe `dev`. Leurs identifiants (`sub`) sont **fixés**
+dans le fichier (`0a11ce00-…`) : le registre de Tenants.Api est indexé par le
+`sub`, et `tools/dev.sh tenants-migrate` y inscrit ces comptes
+(`tools/tenants-dev-seed.sql`). Sans identifiant fixe, chaque réimport
+produirait des comptes que le registre ne reconnaîtrait plus.
 
 | Compte | Ménage | Rôles | Sert à |
 |---|---|---|---|

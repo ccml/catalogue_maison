@@ -7,6 +7,8 @@ import { InjectionToken } from '@angular/core';
 export interface AppSettings {
   /** Origine de Catalogue.Api. Sert aussi à décider où le jeton est envoyé. */
   readonly apiBaseUrl: string;
+  /** Origine de Tenants.Api (administration du ménage). Reçoit aussi le jeton. */
+  readonly tenantsApiBaseUrl: string;
   readonly oidc: {
     /** URL du realm Keycloak, qui est aussi l'issuer attendu. */
     readonly authority: string;
@@ -17,6 +19,7 @@ export interface AppSettings {
 
 const developmentSettings: AppSettings = {
   apiBaseUrl: 'http://localhost:5080',
+  tenantsApiBaseUrl: 'http://localhost:5082',
   oidc: {
     authority: 'http://localhost:8080/realms/maison',
     clientId: 'catalogue-frontend',
@@ -28,14 +31,15 @@ const developmentSettings: AppSettings = {
  * développement (`tools/dev.sh front-lan`), pour l'essayer depuis un
  * téléphone du réseau local.
  *
- * L'API et Keycloak sont alors joints **par la même origine** que la page,
- * sous `/api` et `/realms` : un téléphone ne peut pas joindre le `localhost`
+ * Les API et Keycloak sont alors joints **par la même origine** que la page,
+ * sous `/api`, `/tenants-api` et `/realms` : un téléphone ne peut pas joindre le `localhost`
  * du Mac, une page HTTPS ne peut pas appeler de l'HTTP, et la caméra exige
  * une page HTTPS.
  */
 export function relayedSettings(origin: string): AppSettings {
   return {
     apiBaseUrl: `${origin}/api`,
+    tenantsApiBaseUrl: `${origin}/tenants-api`,
     oidc: {
       authority: `${origin}/realms/maison`,
       clientId: 'catalogue-frontend',

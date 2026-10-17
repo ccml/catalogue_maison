@@ -4,5 +4,7 @@
     <Project Path="services/Catalogue.Api.Tests/Catalogue.Api.Tests.csproj" />
     <Project Path="services/Metadata.Api.Tests/Metadata.Api.Tests.csproj" />
     <Project Path="services/Metadata.Api/Metadata.Api.csproj" />
+    <Project Path="services/Tenants.Api.Tests/Tenants.Api.Tests.csproj" />
+    <Project Path="services/Tenants.Api/Tenants.Api.csproj" />
   </Folder>
 </Solution>

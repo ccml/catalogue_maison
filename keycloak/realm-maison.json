@@ -401,6 +401,19 @@
     "basic",
     "tenant"
   ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"tenant\",\"displayName\":\"Ménage\",\"validations\":{\"length\":{\"max\":48},\"pattern\":{\"pattern\":\"^[a-z][a-z0-9_]*$\",\"error-message\":\"Identifiant de ménage invalide\"}},\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
+  },
   "clients": [
     {
       "clientId": "catalogue-frontend",
@@ -434,7 +447,8 @@
         "email",
         "basic",
         "tenant",
-        "catalogue-api-audience"
+        "catalogue-api-audience",
+        "tenants-api-audience"
       ]
     },
     {
@@ -514,6 +528,7 @@
       }
     },
     {
+      "id": "0a11ce00-0000-4000-8000-000000000001",
       "username": "alice",
       "email": "alice@example.test",
       "firstName": "Alice",
@@ -538,6 +553,7 @@
       ]
     },
     {
+      "id": "0a11ce00-0000-4000-8000-000000000002",
       "username": "theo",
       "email": "theo@example.test",
       "firstName": "Theo",
@@ -561,6 +577,7 @@
       ]
     },
     {
+      "id": "0a11ce00-0000-4000-8000-000000000003",
       "username": "bruno",
       "email": "bruno@example.test",
       "firstName": "Bruno",
@@ -585,6 +602,7 @@
       ]
     },
     {
+      "id": "0a11ce00-0000-4000-8000-000000000004",
       "username": "orphelin",
       "email": "orphelin@example.test",
       "firstName": "Sans",
