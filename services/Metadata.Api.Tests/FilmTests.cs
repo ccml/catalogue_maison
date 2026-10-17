@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -11,14 +12,16 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Metadata.Api.Tests;
 
 /// <summary>
-/// Lecture des réponses d'OMDb. Les fixtures suivent la forme documentée des
-/// réponses d'OMDb (aucune clé n'était disponible pour les relever) : à
-/// remplacer par des réponses réelles dès qu'une clé l'est.
+/// Lecture des réponses d'OMDb. Les fixtures de recherche, de fiche, de film
+/// introuvable et de clé refusée sont des réponses réelles, relevées telles
+/// quelles. Le quota atteint et la fiche incomplète restent écrits à la main,
+/// faute de pouvoir les provoquer : ils suivent la forme des réponses réelles.
 /// </summary>
 public sealed class OmdbParsingTests
 {
@@ -28,11 +31,14 @@ public sealed class OmdbParsingTests
     [Fact]
     public void Une_recherche_ne_propose_que_des_films_et_des_series()
     {
-        var films = OmdbClient.ParseSearch(Fixture("omdb-recherche-inception.json"));
+        // Réponse réelle mêlant séries, films et jeux vidéo : les jeux sont écartés.
+        var films = OmdbClient.ParseSearch(Fixture("omdb-recherche-the-witcher.json"));
 
-        Assert.Equal(["tt1375666", "tt5295894", "tt4034354"], films.Select(f => f.Id));
-        Assert.Equal("Inception", films[0].Title);
-        Assert.Equal("2010", films[0].Year);
+        Assert.Equal(
+            ["tt5180504", "tt11657662", "tt12785720", "tt15495150", "tt28283547", "tt5091902"],
+            films.Select(f => f.Id));
+        Assert.Equal("The Witcher", films[0].Title);
+        Assert.Equal("2019–", films[0].Year);
     }
 
     [Fact]
@@ -52,7 +58,7 @@ public sealed class OmdbParsingTests
         Assert.Equal(2010, film.Year);
         Assert.Equal(["Christopher Nolan"], film.Creators);
         Assert.Equal(148, film.DurationMinutes);
-        Assert.Equal("Action, Adventure, Sci-Fi", film.Genre);
+        Assert.Equal("Adventure, Sci-Fi, Thriller", film.Genre);
         Assert.Equal(["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page"], film.Actors);
         Assert.Equal(OmdbClient.SourceName, film.Source);
     }
@@ -105,6 +111,7 @@ public sealed class FilmEndpointTests(MetadataApiFixture fixture) : IAsyncLifeti
     };
 
     private readonly StubOmdb _omdb = new();
+    private readonly CapturedLogs _logs = new();
 
     public async Task InitializeAsync()
     {
@@ -162,6 +169,23 @@ public sealed class FilmEndpointTests(MetadataApiFixture fixture) : IAsyncLifeti
     }
 
     [Fact]
+    public async Task La_cle_n_apparait_dans_aucun_journal()
+    {
+        // La clé voyage dans l'URL : c'est la journalisation des appels
+        // HTTP sortants qui risquerait de la recopier. Tout est capturé, au
+        // niveau le plus bavard, sur le chemin nominal comme sur l'échec.
+        var client = WithKey();
+        await client.GetAsync("/films?title=Inception");
+        await client.GetAsync("/films/tt1375666");
+
+        _omdb.Body = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "omdb-cle-refusee.json"));
+        await client.GetAsync("/films?title=Matrix");
+
+        Assert.Contains(_logs.Entries, e => e.Contains("omdbapi.com", StringComparison.Ordinal));
+        Assert.DoesNotContain(_logs.Entries, e => e.Contains(Key, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Un_identifiant_mal_forme_n_atteint_jamais_OMDb()
     {
         var response = await WithKey().GetAsync("/films/tt1375666%26s%3Dautre");
@@ -175,6 +199,7 @@ public sealed class FilmEndpointTests(MetadataApiFixture fixture) : IAsyncLifeti
         var factory = fixture.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Enrichment:OmdbApiKey", Key);
+            builder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Trace).AddProvider(_logs));
             builder.ConfigureTestServices(services =>
                 services.AddHttpClient<OmdbClient>().ConfigurePrimaryHttpMessageHandler(() => _omdb));
         });
@@ -184,6 +209,30 @@ public sealed class FilmEndpointTests(MetadataApiFixture fixture) : IAsyncLifeti
             new System.Net.Http.Headers.AuthenticationHeaderValue(
                 "Bearer", MetadataApiFixture.Token(MetadataApiFixture.Audience, ["enrichissement"]));
         return client;
+    }
+
+    /// <summary>Tous les messages journalisés, exceptions comprises.</summary>
+    private sealed class CapturedLogs : ILoggerProvider, ILogger
+    {
+        public ConcurrentQueue<string> Entries { get; } = new();
+
+        public ILogger CreateLogger(string categoryName) => this;
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        {
+            Entries.Enqueue(state.ToString() ?? string.Empty);
+            return null;
+        }
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Entries.Enqueue($"{formatter(state, exception)} {exception}");
+
+        public void Dispose()
+        {
+        }
     }
 
     /// <summary>OMDb simulé : répond selon le paramètre, et garde la trace des URL appelées.</summary>

@@ -111,6 +111,11 @@ public sealed class MetadataApiFixture : WebApplicationFactory<Program>, IAsyncL
         builder.UseSetting("Keycloak:Authority", Issuer);
         builder.UseSetting("Keycloak:Audience", Audience);
         builder.UseSetting("Keycloak:RequireHttpsMetadata", "false");
+        // L'hôte de test tourne en Development et lit donc les user-secrets du
+        // développeur : sa clé OMDb ne doit ni changer le résultat des tests,
+        // ni leur faire atteindre le vrai OMDb. Sans clé par défaut ; les
+        // tests qui en veulent une la posent eux-mêmes.
+        builder.UseSetting("Enrichment:OmdbApiKey", string.Empty);
 
         builder.ConfigureTestServices(services =>
         {

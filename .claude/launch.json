@@ -1,0 +1,30 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "catalogue-api",
+      "runtimeExecutable": "tools/dev.sh",
+      "runtimeArgs": ["api"],
+      "port": 5080
+    },
+    {
+      "name": "metadata-api",
+      "runtimeExecutable": "tools/dev.sh",
+      "runtimeArgs": ["metadata"],
+      "port": 5081
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "tools/dev.sh",
+      "runtimeArgs": ["front-start"],
+      "port": 4200
+    },
+    {
+      "name": "frontend-lan",
+      "runtimeExecutable": "tools/dev.sh",
+      "runtimeArgs": ["front-lan"],
+      "port": 4443,
+      "url": "https://localhost:4443"
+    }
+  ]
+}
