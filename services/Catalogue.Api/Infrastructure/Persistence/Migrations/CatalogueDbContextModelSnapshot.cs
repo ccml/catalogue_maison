@@ -33,6 +33,13 @@ namespace Catalogue.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("added_at");
 
+                    b.Property<string>("Barcode")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)")
+                        .HasColumnName("barcode")
+                        .HasComputedColumnSql("specifics ->> 'barcode'", true);
+
                     b.Property<string>("Creator")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
@@ -86,6 +93,9 @@ namespace Catalogue.Api.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AddedAt")
                         .HasDatabaseName("ix_medias_added_at");
+
+                    b.HasIndex("Barcode")
+                        .HasDatabaseName("ix_medias_barcode");
 
                     b.HasIndex("Isbn")
                         .HasDatabaseName("ix_medias_isbn");

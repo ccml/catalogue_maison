@@ -8,15 +8,16 @@
   <h1>Le catalogue</h1>
 
   <div class="filters">
-    <label class="a11y-only" for="recherche">Rechercher dans le catalogue</label>
-    <input
-      id="recherche"
-      #recherche
-      type="search"
-      autocomplete="off"
-      placeholder="Un titre, un auteur"
-      (input)="search(recherche.value)"
-    />
+    <div class="search">
+      <label for="recherche">Titre, auteur ou série</label>
+      <input
+        id="recherche"
+        #recherche
+        type="search"
+        autocomplete="off"
+        (input)="search(recherche.value)"
+      />
+    </div>
 
     <div class="types" role="group" aria-label="Filtrer par type de média">
       <button type="button" [class.current]="type() === null" (click)="filterByType(null)">

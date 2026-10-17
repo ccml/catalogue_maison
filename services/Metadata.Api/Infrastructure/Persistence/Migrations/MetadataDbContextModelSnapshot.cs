@@ -22,6 +22,32 @@ namespace Metadata.Api.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Metadata.Api.Infrastructure.Persistence.CachedFilm", b =>
+                {
+                    b.Property<string>("ImdbId")
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("imdb_id");
+
+                    b.Property<DateTimeOffset>("FetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fetched_at");
+
+                    b.Property<string>("Record")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("record");
+
+                    b.Property<int>("RecordVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("record_version");
+
+                    b.HasKey("ImdbId")
+                        .HasName("pk_films");
+
+                    b.ToTable("films", (string)null);
+                });
+
             modelBuilder.Entity("Metadata.Api.Infrastructure.Persistence.CachedLookup", b =>
                 {
                     b.Property<string>("Code")
@@ -36,6 +62,10 @@ namespace Metadata.Api.Infrastructure.Persistence.Migrations
                     b.Property<string>("Record")
                         .HasColumnType("jsonb")
                         .HasColumnName("record");
+
+                    b.Property<int>("RecordVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("record_version");
 
                     b.HasKey("Code")
                         .HasName("pk_lookups");

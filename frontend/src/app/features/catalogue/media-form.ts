@@ -7,9 +7,14 @@ import { firstValueFrom } from 'rxjs';
 import { CatalogueApi } from '../../core/api/catalogue-api.service';
 import { describeHttpError } from '../../core/api/http-error';
 import {
+  addTitles,
+  bookGenres,
+  creatorLabels,
+  mediaTypeFromSlug,
   mediaTypeLabels,
   mediaTypes,
   type CreateMediaRequest,
+  type FilmCandidate,
   type MediaDetail,
   type MediaType,
   type ScanDraft,
@@ -17,7 +22,14 @@ import {
 } from '../../core/api/media.models';
 import { BarcodeScanner } from './barcode-scanner';
 import { buildSpecifics, parseNumber, specificsToFields, text } from './media-form.specifics';
-import { normalizeCode, scanNotice } from './scan';
+import {
+  filmDraftNotice,
+  filmSearchNotice,
+  isIsbn,
+  normalizeCode,
+  scanNotice,
+  type ScanNotice,
+} from './scan';
 
 /**
  * Saisie et correction d'une fiche. **Seuls le type et le titre sont
@@ -31,6 +43,12 @@ import { normalizeCode, scanNotice } from './scan';
  * Le scan vit ici pour la même raison : il ne fait que **pré-remplir** ce
  * formulaire, que l'utilisateur valide ou corrige avant d'enregistrer. Un
  * scan sans notice laisse simplement le formulaire à compléter.
+ *
+ * En saisie, le type a été choisi à l'étape précédente
+ * (`/catalogue/ajouter/:kind`), et l'écran n'offre que ce qui a du sens pour
+ * lui : le scan de l'ISBN pour un livre ou une BD, du code-barres pour un
+ * disque, la recherche par titre pour un film. En correction, le type reste
+ * modifiable, pour réparer une erreur de saisie.
  */
 @Component({
   selector: 'app-media-form',
@@ -42,11 +60,27 @@ export class MediaForm implements OnInit {
   /** Fourni par la route en correction, absent en saisie. */
   readonly id = input<string>();
 
+  /** Type choisi à l'étape précédente, en saisie : segment d'URL (`livre`, `bd`…). */
+  readonly kind = input<string>();
+
+  /** Type choisi pour la saisie ; `null` en correction, ou si l'URL n'en désigne aucun. */
+  protected readonly chosenType = computed(() => mediaTypeFromSlug(this.kind()));
+
+  /** Le scan n'a de source que pour les livres, les BD et les disques. */
+  protected readonly offersScan = computed(() => {
+    const type = this.chosenType();
+    return type === 'Book' || type === 'ComicBook' || type === 'Music';
+  });
+
+  protected readonly addTitles = addTitles;
+  protected readonly creatorLabels = creatorLabels;
+
   private readonly api = inject(CatalogueApi);
   private readonly router = inject(Router);
 
   protected readonly types = mediaTypes;
   protected readonly labels = mediaTypeLabels;
+  protected readonly genres = bookGenres;
 
   protected readonly correction = computed(() => this.id() !== undefined);
   protected readonly loading = signal(false);
@@ -62,8 +96,14 @@ export class MediaForm implements OnInit {
   protected readonly scanProbleme = signal<string | null>(null);
   protected readonly notice = computed(() => {
     const result = this.scanResult();
-    return result === null ? null : scanNotice(result);
+    return result === null ? null : scanNotice(result, this.chosenType());
   });
+
+  /** La recherche de films n'existe que si le backend a une clé OMDb. */
+  protected readonly filmSearchAvailable = signal(false);
+  protected readonly filmSearching = signal(false);
+  protected readonly films = signal<readonly FilmCandidate[] | null>(null);
+  protected readonly filmNotice = signal<ScanNotice | null>(null);
 
   private readonly fb = inject(FormBuilder).nonNullable;
 
@@ -74,6 +114,9 @@ export class MediaForm implements OnInit {
    * qui recharge la page et perd le jeton tenu en mémoire.
    */
   protected readonly scanForm = this.fb.group({ code: [''] });
+
+  /** Titre d'un film à chercher. Même raison que pour le code : un vrai groupe. */
+  protected readonly filmForm = this.fb.group({ title: [''] });
 
   // Tous les champs sont du texte : les nombres sont convertis à
   // l'enregistrement, ce qui évite des contrôles nullables et des saisies
@@ -87,15 +130,21 @@ export class MediaForm implements OnInit {
     isbn: [''],
     publisher: [''],
     pages: [''],
+    collection: [''],
+    collectionNumber: [''],
+    genre: [''],
+    edition: [''],
     series: [''],
     volume: [''],
     illustrator: [''],
     label: [''],
     format: [''],
     tracks: [''],
+    barcode: [''],
     studio: [''],
     durationMinutes: [''],
     support: [''],
+    actors: [''],
     platform: [''],
     minPlayers: [''],
     maxPlayers: [''],
@@ -110,6 +159,17 @@ export class MediaForm implements OnInit {
   async ngOnInit(): Promise<void> {
     const id = this.id();
     if (id === undefined) {
+      const type = this.chosenType();
+      if (type === null) {
+        // Adresse qui ne désigne aucun type : retour au choix du type.
+        await this.router.navigate(['/catalogue/ajouter']);
+        return;
+      }
+
+      this.form.controls.type.setValue(type);
+      if (type === 'Film') {
+        await this.verifieRechercheDeFilms();
+      }
       return;
     }
 
@@ -169,6 +229,58 @@ export class MediaForm implements OnInit {
     await this.scanne(code);
   }
 
+  /**
+   * Demande au backend si la recherche de films est en service. En cas
+   * d'échec, elle reste simplement masquée : ce n'est qu'une commodité.
+   */
+  private async verifieRechercheDeFilms(): Promise<void> {
+    try {
+      this.filmSearchAvailable.set((await firstValueFrom(this.api.filmSearchAvailable())).enabled);
+    } catch {
+      this.filmSearchAvailable.set(false);
+    }
+  }
+
+  protected async chercheFilm(): Promise<void> {
+    const title = this.filmForm.controls.title.value.trim();
+    if (title.length < 2) {
+      this.films.set(null);
+      this.filmNotice.set({ text: 'Indiquez au moins deux lettres du titre.', tone: 'attention' });
+      return;
+    }
+
+    this.filmSearching.set(true);
+    this.filmNotice.set(null);
+    this.films.set(null);
+
+    try {
+      const result = await firstValueFrom(this.api.searchFilms(title));
+      this.films.set(result.films);
+      this.filmNotice.set(filmSearchNotice(result));
+    } catch (error) {
+      this.filmNotice.set({ text: describeHttpError(error).message, tone: 'attention' });
+    } finally {
+      this.filmSearching.set(false);
+    }
+  }
+
+  protected async choisisFilm(film: FilmCandidate): Promise<void> {
+    this.filmSearching.set(true);
+    this.filmNotice.set(null);
+
+    try {
+      const result = await firstValueFrom(this.api.film(film.id));
+      this.preRemplis(result.draft);
+      this.films.set(null);
+      this.scanResult.set(null);
+      this.filmNotice.set(filmDraftNotice(result.source));
+    } catch (error) {
+      this.filmNotice.set({ text: describeHttpError(error).message, tone: 'attention' });
+    } finally {
+      this.filmSearching.set(false);
+    }
+  }
+
   private async scanne(code: string): Promise<void> {
     this.searching.set(true);
     this.scanProbleme.set(null);
@@ -181,6 +293,11 @@ export class MediaForm implements OnInit {
       // Champs absents quand ils sont nuls : on teste l'absence, pas `null`.
       if (!result.existing && result.draft) {
         this.preRemplis(result.draft);
+      } else if (!result.existing && !isIsbn(result.code)) {
+        // Code-barres inconnu des sources : on ne sait pas si c'est un
+        // disque, mais s'il en est un, son code doit être noté pour qu'il
+        // soit reconnu au prochain scan.
+        this.form.controls.barcode.setValue(result.code);
       }
     } catch (error) {
       this.scanProbleme.set(describeHttpError(error).message);
@@ -206,15 +323,21 @@ export class MediaForm implements OnInit {
       isbn: champs.isbn,
       publisher: champs.publisher,
       pages: nombre(champs.pages),
+      collection: champs.collection,
+      collectionNumber: champs.collectionNumber,
+      genre: champs.genre,
+      edition: champs.edition,
       series: champs.series,
       volume: nombre(champs.volume),
       illustrator: champs.illustrator,
       label: champs.label,
       format: champs.format,
       tracks: champs.tracks,
+      barcode: champs.barcode,
       studio: champs.studio,
       durationMinutes: nombre(champs.durationMinutes),
       support: champs.support,
+      actors: champs.actors,
       platform: champs.platform,
       minPlayers: nombre(champs.minPlayers),
       maxPlayers: nombre(champs.maxPlayers),
@@ -266,15 +389,21 @@ export class MediaForm implements OnInit {
         isbn: value.isbn,
         publisher: value.publisher,
         pages: parseNumber(value.pages),
+        collection: value.collection,
+        collectionNumber: value.collectionNumber,
+        genre: value.genre,
+        edition: value.edition,
         series: value.series,
         volume: parseNumber(value.volume),
         illustrator: value.illustrator,
         label: value.label,
         format: value.format,
         tracks: value.tracks,
+        barcode: value.barcode,
         studio: value.studio,
         durationMinutes: parseNumber(value.durationMinutes),
         support: value.support,
+        actors: value.actors,
         platform: value.platform,
         minPlayers: parseNumber(value.minPlayers),
         maxPlayers: parseNumber(value.maxPlayers),
@@ -295,15 +424,21 @@ export class MediaForm implements OnInit {
       isbn: champs.isbn,
       publisher: champs.publisher,
       pages: nombre(champs.pages),
+      collection: champs.collection,
+      collectionNumber: champs.collectionNumber,
+      genre: champs.genre,
+      edition: champs.edition,
       series: champs.series,
       volume: nombre(champs.volume),
       illustrator: champs.illustrator,
       label: champs.label,
       format: champs.format,
       tracks: champs.tracks,
+      barcode: champs.barcode,
       studio: champs.studio,
       durationMinutes: nombre(champs.durationMinutes),
       support: champs.support,
+      actors: champs.actors,
       platform: champs.platform,
       minPlayers: nombre(champs.minPlayers),
       maxPlayers: nombre(champs.maxPlayers),

@@ -70,6 +70,13 @@
             },
             "development": {
               "buildTarget": "frontend:build:development"
+            },
+            "lan": {
+              "buildTarget": "frontend:build:development",
+              "host": "0.0.0.0",
+              "port": 4443,
+              "ssl": true,
+              "proxyConfig": "proxy.lan.json"
             }
           },
           "defaultConfiguration": "development"

@@ -56,6 +56,7 @@ public static class CatalogueApiRegistration
                 {
                     ValidateIssuer = true,
                     ValidIssuer = keycloak.Authority,
+                    ValidIssuers = keycloak.AdditionalIssuers,
                     ValidateAudience = true,
                     ValidAudience = keycloak.Audience,
                     ValidateIssuerSigningKey = true,

@@ -5,6 +5,10 @@ export interface SpecificsFields {
   readonly isbn: string;
   readonly publisher: string;
   readonly pages: number | null;
+  readonly collection: string;
+  readonly collectionNumber: string;
+  readonly genre: string;
+  readonly edition: string;
   readonly series: string;
   readonly volume: number | null;
   readonly illustrator: string;
@@ -12,9 +16,12 @@ export interface SpecificsFields {
   readonly format: string;
   /** Une piste par ligne. */
   readonly tracks: string;
+  readonly barcode: string;
   readonly studio: string;
   readonly durationMinutes: number | null;
   readonly support: string;
+  /** Un acteur par ligne. */
+  readonly actors: string;
   readonly platform: string;
   readonly minPlayers: number | null;
   readonly maxPlayers: number | null;
@@ -34,45 +41,62 @@ export interface SpecificsFields {
 export function buildSpecifics(type: MediaType, fields: SpecificsFields): MediaSpecifics | null {
   switch (type) {
     case 'Book': {
-      const isbn = text(fields.isbn);
-      const publisher = text(fields.publisher);
-      const pages = number(fields.pages);
-      return isbn === null && publisher === null && pages === null
+      const book = {
+        type: 'book',
+        isbn: text(fields.isbn),
+        publisher: text(fields.publisher),
+        pages: number(fields.pages),
+        series: text(fields.series),
+        volume: number(fields.volume),
+        collection: text(fields.collection),
+        collectionNumber: text(fields.collectionNumber),
+        genre: text(fields.genre),
+      } as const;
+      return Object.entries(book).every(([key, value]) => key === 'type' || value === null)
         ? null
-        : { type: 'book', isbn, publisher, pages };
+        : book;
     }
 
     case 'ComicBook': {
-      const series = text(fields.series);
-      const volume = number(fields.volume);
-      const illustrator = text(fields.illustrator);
-      const publisher = text(fields.publisher);
-      const isbn = text(fields.isbn);
-      return series === null &&
-        volume === null &&
-        illustrator === null &&
-        publisher === null &&
-        isbn === null
+      const comic = {
+        type: 'comic',
+        series: text(fields.series),
+        volume: number(fields.volume),
+        illustrator: text(fields.illustrator),
+        publisher: text(fields.publisher),
+        isbn: text(fields.isbn),
+        collection: text(fields.collection),
+        collectionNumber: text(fields.collectionNumber),
+        edition: text(fields.edition),
+      } as const;
+      return Object.entries(comic).every(([key, value]) => key === 'type' || value === null)
         ? null
-        : { type: 'comic', series, volume, illustrator, publisher, isbn };
+        : comic;
     }
 
     case 'Music': {
       const label = text(fields.label);
       const format = text(fields.format);
       const tracks = parseLines(fields.tracks);
-      return label === null && format === null && tracks.length === 0
+      const barcode = text(fields.barcode);
+      return label === null && format === null && tracks.length === 0 && barcode === null
         ? null
-        : { type: 'music', label, format, tracks };
+        : { type: 'music', label, format, tracks, barcode };
     }
 
     case 'Film': {
       const studio = text(fields.studio);
       const durationMinutes = number(fields.durationMinutes);
       const support = text(fields.support);
-      return studio === null && durationMinutes === null && support === null
+      const genre = text(fields.genre);
+      const actors = parseLines(fields.actors);
+      return studio === null &&
+        durationMinutes === null &&
+        support === null &&
+        genre === null &&
+        actors.length === 0
         ? null
-        : { type: 'film', studio, durationMinutes, support };
+        : { type: 'film', studio, durationMinutes, support, genre, actors };
     }
 
     case 'Game': {
@@ -123,15 +147,21 @@ const champsVides: SpecificsFields = {
   isbn: '',
   publisher: '',
   pages: null,
+  collection: '',
+  collectionNumber: '',
+  genre: '',
+  edition: '',
   series: '',
   volume: null,
   illustrator: '',
   label: '',
   format: '',
   tracks: '',
+  barcode: '',
   studio: '',
   durationMinutes: null,
   support: '',
+  actors: '',
   platform: '',
   minPlayers: null,
   maxPlayers: null,
@@ -157,6 +187,11 @@ export function specificsToFields(specifics: MediaSpecifics | null): SpecificsFi
         isbn: specifics.isbn ?? '',
         publisher: specifics.publisher ?? '',
         pages: specifics.pages ?? null,
+        series: specifics.series ?? '',
+        volume: specifics.volume ?? null,
+        collection: specifics.collection ?? '',
+        collectionNumber: specifics.collectionNumber ?? '',
+        genre: specifics.genre ?? '',
       };
 
     case 'comic':
@@ -167,6 +202,9 @@ export function specificsToFields(specifics: MediaSpecifics | null): SpecificsFi
         illustrator: specifics.illustrator ?? '',
         publisher: specifics.publisher ?? '',
         isbn: specifics.isbn ?? '',
+        collection: specifics.collection ?? '',
+        collectionNumber: specifics.collectionNumber ?? '',
+        edition: specifics.edition ?? '',
       };
 
     case 'music':
@@ -175,6 +213,7 @@ export function specificsToFields(specifics: MediaSpecifics | null): SpecificsFi
         label: specifics.label ?? '',
         format: specifics.format ?? '',
         tracks: (specifics.tracks ?? []).join('\n'),
+        barcode: specifics.barcode ?? '',
       };
 
     case 'film':
@@ -183,6 +222,8 @@ export function specificsToFields(specifics: MediaSpecifics | null): SpecificsFi
         studio: specifics.studio ?? '',
         durationMinutes: specifics.durationMinutes ?? null,
         support: specifics.support ?? '',
+        genre: specifics.genre ?? '',
+        actors: (specifics.actors ?? []).join('\n'),
       };
 
     case 'game':

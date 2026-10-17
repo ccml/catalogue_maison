@@ -79,6 +79,20 @@ clients. C'est le **seul** endroit où un service lit le ménage.
 | `metadata-api` | confidentiel | appelé en service à service, n'appelle personne |
 | `tenants-api` | confidentiel | **seul** client avec accès à l'Admin REST API |
 
+### Accès depuis le réseau local
+
+Le client `catalogue-frontend` accepte, en plus de `http://localhost:4200`,
+l'URI de redirection **relative** `/*`. Keycloak la résout contre l'URL par
+laquelle on le joint : à travers le relais HTTPS du frontend
+(`tools/dev.sh front-lan`), c'est l'origine vue par le téléphone. Aucune
+adresse IP n'est ainsi écrite dans ce fichier. Jointe directement, la même
+URI se résout vers Keycloak lui-même, ce qui n'ouvre rien.
+
+Keycloak lit pour cela les en-têtes `X-Forwarded-*`
+(`KC_PROXY_HEADERS=xforwarded` dans `docker-compose.yml`). C'est un réglage
+de développement : en production, ces en-têtes ne doivent être acceptés que
+d'un reverse proxy de confiance.
+
 ### Service à service : `catalogue-api` → `metadata-api`
 
 Catalogue.Api obtient **son propre** jeton en client credentials ; le jeton

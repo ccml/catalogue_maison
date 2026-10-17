@@ -27,6 +27,8 @@ public sealed class MetadataDbContext(DbContextOptions<MetadataDbContext> option
 
     public DbSet<CachedLookup> Lookups => Set<CachedLookup>();
 
+    public DbSet<CachedFilm> Films => Set<CachedFilm>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var lookup = modelBuilder.Entity<CachedLookup>();
@@ -43,5 +45,18 @@ public sealed class MetadataDbContext(DbContextOptions<MetadataDbContext> option
               .HasConversion(
                   record => record == null ? null : JsonSerializer.Serialize(record, RecordJson),
                   json => json == null ? null : JsonSerializer.Deserialize<MetadataRecord>(json, RecordJson));
+
+        var film = modelBuilder.Entity<CachedFilm>();
+
+        film.ToTable("films");
+        film.HasKey(f => f.ImdbId);
+        film.Property(f => f.ImdbId).HasMaxLength(12);
+        film.Property(f => f.FetchedAt).IsRequired();
+        film.Property(f => f.Record)
+            .HasColumnType("jsonb")
+            .IsRequired()
+            .HasConversion(
+                record => JsonSerializer.Serialize(record, RecordJson),
+                json => JsonSerializer.Deserialize<MetadataRecord>(json, RecordJson)!);
     }
 }

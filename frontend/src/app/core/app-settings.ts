@@ -23,7 +23,32 @@ const developmentSettings: AppSettings = {
   },
 };
 
+/**
+ * Réglages quand l'application est servie par le relais HTTPS du serveur de
+ * développement (`tools/dev.sh front-lan`), pour l'essayer depuis un
+ * téléphone du réseau local.
+ *
+ * L'API et Keycloak sont alors joints **par la même origine** que la page,
+ * sous `/api` et `/realms` : un téléphone ne peut pas joindre le `localhost`
+ * du Mac, une page HTTPS ne peut pas appeler de l'HTTP, et la caméra exige
+ * une page HTTPS.
+ */
+export function relayedSettings(origin: string): AppSettings {
+  return {
+    apiBaseUrl: `${origin}/api`,
+    oidc: {
+      authority: `${origin}/realms/maison`,
+      clientId: 'catalogue-frontend',
+    },
+  };
+}
+
 export const APP_SETTINGS = new InjectionToken<AppSettings>('AppSettings', {
   providedIn: 'root',
-  factory: () => developmentSettings,
+  // Seul le relais sert l'application en HTTPS en développement : c'est ce
+  // qui le désigne. Le serveur ordinaire, lui, reste en HTTP sur localhost.
+  factory: () =>
+    window.location.protocol === 'https:'
+      ? relayedSettings(window.location.origin)
+      : developmentSettings,
 });

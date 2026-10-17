@@ -22,11 +22,39 @@ public abstract record MediaSpecifics
     public abstract IEnumerable<string> Validate();
 }
 
+/// <summary>
+/// Un livre. La <strong>série</strong> (Harry Potter, tome 3) et la
+/// <strong>collection</strong> de l'éditeur (Folio policier, n° 85) sont deux
+/// choses distinctes, qu'une couverture confond volontiers : la première
+/// appartient à l'œuvre, la seconde à l'édition.
+/// </summary>
 public sealed record BookSpecifics : MediaSpecifics
 {
+    /// <summary>Longueur maximale d'un libellé : celle de la colonne générée <c>series</c>.</summary>
+    public const int MaxLabelLength = 256;
+
     public string? Isbn { get; init; }
     public string? Publisher { get; init; }
     public int? Pages { get; init; }
+
+    /// <summary>
+    /// Série de l'œuvre. Même clé JSON que la série d'une BD : la colonne
+    /// générée <c>series</c> la lit, et la recherche par série vaut donc pour
+    /// les livres sans aucune migration.
+    /// </summary>
+    public string? Series { get; init; }
+
+    /// <summary>Rang dans la série.</summary>
+    public int? Volume { get; init; }
+
+    /// <summary>Collection de l'éditeur.</summary>
+    public string? Collection { get; init; }
+
+    /// <summary>Numéro dans la collection. Du texte : certaines collections numérotent « LP 3121 ».</summary>
+    public string? CollectionNumber { get; init; }
+
+    /// <summary>Genre, libre ; le frontend propose des libellés pour qu'ils restent homogènes.</summary>
+    public string? Genre { get; init; }
 
     [JsonIgnore]
     public override MediaType AppliesTo => MediaType.Book;
@@ -41,6 +69,21 @@ public sealed record BookSpecifics : MediaSpecifics
         if (Pages is <= 0)
         {
             yield return "Le nombre de pages doit être strictement positif.";
+        }
+
+        if (Volume is <= 0)
+        {
+            yield return "Le numéro de tome doit être strictement positif.";
+        }
+
+        if (Series?.Length > MaxLabelLength || Collection?.Length > MaxLabelLength || Genre?.Length > MaxLabelLength)
+        {
+            yield return $"La série, la collection et le genre ne peuvent pas dépasser {MaxLabelLength} caractères.";
+        }
+
+        if (CollectionNumber?.Length > 32)
+        {
+            yield return "Le numéro dans la collection ne peut pas dépasser 32 caractères.";
         }
     }
 }
@@ -59,6 +102,19 @@ public sealed record ComicBookSpecifics : MediaSpecifics
     public string? Publisher { get; init; }
     public string? Isbn { get; init; }
 
+    /// <summary>Collection de l'éditeur (Aire libre, Shonen manga).</summary>
+    public string? Collection { get; init; }
+
+    /// <summary>Numéro dans la collection, en texte comme pour un livre.</summary>
+    public string? CollectionNumber { get; init; }
+
+    /// <summary>
+    /// Mention d'édition (« Éd. de luxe », « Nouvelle éd. »). Pour une BD,
+    /// elle distingue deux objets de même titre qu'un collectionneur ne
+    /// confond pas.
+    /// </summary>
+    public string? Edition { get; init; }
+
     [JsonIgnore]
     public override MediaType AppliesTo => MediaType.ComicBook;
 
@@ -73,6 +129,20 @@ public sealed record ComicBookSpecifics : MediaSpecifics
         {
             yield return "Le numéro de tome doit être strictement positif.";
         }
+
+        // La colonne générée series est bornée : une série plus longue
+        // ferait échouer l'écriture en base plutôt qu'à l'entrée.
+        if (Series?.Length > BookSpecifics.MaxLabelLength
+            || Collection?.Length > BookSpecifics.MaxLabelLength
+            || Edition?.Length > BookSpecifics.MaxLabelLength)
+        {
+            yield return $"La série, la collection et l'édition ne peuvent pas dépasser {BookSpecifics.MaxLabelLength} caractères.";
+        }
+
+        if (CollectionNumber?.Length > 32)
+        {
+            yield return "Le numéro dans la collection ne peut pas dépasser 32 caractères.";
+        }
     }
 }
 
@@ -82,11 +152,23 @@ public sealed record MusicSpecifics : MediaSpecifics
     public string? Format { get; init; }
     public IReadOnlyList<string> Tracks { get; init; } = [];
 
+    /// <summary>
+    /// Code-barres du disque (EAN-13 ou UPC-A), stocké sous sa forme EAN-13.
+    /// Promu en colonne générée indexée : c'est par lui qu'un disque déjà
+    /// possédé est reconnu au scan, comme un livre par son ISBN.
+    /// </summary>
+    public string? Barcode { get; init; }
+
     [JsonIgnore]
     public override MediaType AppliesTo => MediaType.Music;
 
     public override IEnumerable<string> Validate()
     {
+        if (Barcode is not null && Barcode.Length > 0 && !BarcodeFormat.IsWellFormed(Barcode))
+        {
+            yield return "Le code-barres doit comporter 8, 12 ou 13 chiffres.";
+        }
+
         if (Tracks.Any(string.IsNullOrWhiteSpace))
         {
             yield return "Une piste ne peut pas être vide.";
@@ -100,6 +182,12 @@ public sealed record FilmSpecifics : MediaSpecifics
     public int? DurationMinutes { get; init; }
     public string? Support { get; init; }
 
+    /// <summary>Genre, libre ; tel qu'OMDb le donne, il est en anglais (« Action, Sci-Fi »).</summary>
+    public string? Genre { get; init; }
+
+    /// <summary>Acteurs principaux. Le réalisateur, lui, est dans la colonne commune <c>Creator</c>.</summary>
+    public IReadOnlyList<string> Actors { get; init; } = [];
+
     [JsonIgnore]
     public override MediaType AppliesTo => MediaType.Film;
 
@@ -108,6 +196,16 @@ public sealed record FilmSpecifics : MediaSpecifics
         if (DurationMinutes is <= 0)
         {
             yield return "La durée doit être strictement positive.";
+        }
+
+        if (Genre?.Length > BookSpecifics.MaxLabelLength)
+        {
+            yield return $"Le genre ne peut pas dépasser {BookSpecifics.MaxLabelLength} caractères.";
+        }
+
+        if (Actors.Any(string.IsNullOrWhiteSpace))
+        {
+            yield return "Un acteur ne peut pas être vide.";
         }
     }
 }

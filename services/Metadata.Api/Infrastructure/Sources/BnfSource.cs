@@ -27,6 +27,12 @@ public sealed partial class BnfSource(HttpClient http) : IMetadataSource
     private const string AuthorRole = "070";
     private const string IllustratorRole = "440";
 
+    /// <summary>Indice des bandes dessinées dans le cadre de classement de la Bibliographie nationale française.</summary>
+    private const string ComicsClassification = "805";
+
+    /// <summary>Thésaurus des formes audiovisuelles : décrit un support (livre lu), pas un genre.</summary>
+    private const string AudiovisualThesaurus = "frTAV";
+
     private static readonly XNamespace Marc = "info:lc/xmlns/marcxchange-v2";
     private static readonly XNamespace Srw = "http://www.loc.gov/zing/srw/";
 
@@ -77,9 +83,16 @@ public sealed partial class BnfSource(HttpClient http) : IMetadataSource
             return null;
         }
 
+        // Une notice provisoire, établie d'après les données de l'éditeur
+        // avant catalogage, porte « n » (description non ISBD) en position 18
+        // du label ; une notice cataloguée y porte un blanc.
+        var leader = record.Element(Marc + "leader")?.Value ?? string.Empty;
+        var provisional = leader.Length > 18 && leader[18] == 'n';
+
         var fields = record.Elements(Marc + "datafield")
             .Select(field => new Field(
                 (string?)field.Attribute("tag") ?? string.Empty,
+                (string?)field.Attribute("ind2") ?? string.Empty,
                 field.Elements(Marc + "subfield")
                     .Select(sub => ((string?)sub.Attribute("code") ?? string.Empty, Clean(sub.Value)))
                     .ToList()))
@@ -106,15 +119,22 @@ public sealed partial class BnfSource(HttpClient http) : IMetadataSource
 
         var illustrator = people.FirstOrDefault(p => p.Roles.Contains(IllustratorRole)).Name;
 
-        var isComic = fields
-            .Where(f => f.Tag == "608")
+        var genres = fields
+            .Where(f => f.Tag == "608" && f.First('2') != AudiovisualThesaurus)
             .SelectMany(f => f.All('a'))
-            .Any(genre => genre.Contains("bandes dessinées", StringComparison.OrdinalIgnoreCase)
-                       || genre.Contains("mangas", StringComparison.OrdinalIgnoreCase));
+            .ToList();
+
+        var isComic = IsComic(
+            genres,
+            fields.FirstOrDefault(f => f.Tag == "105")?.First('a'),
+            fields.Where(f => f.Tag == "686").Select(f => f.First('a')));
 
         // L'adresse de publication est en 210 dans les notices anciennes, en
-        // 214 dans les récentes.
-        var publication = fields.FirstOrDefault(f => f.Tag is "214" or "210");
+        // 214 dans les récentes. Une notice récente peut porter plusieurs 214
+        // — l'imprimeur a le sien (second indicateur 3) : seul celui de la
+        // publication (0) désigne l'éditeur.
+        var publication = fields.FirstOrDefault(f => f.Tag == "214" && f.Indicator2 == "0")
+            ?? fields.FirstOrDefault(f => f.Tag == "210");
         var publisher = publication?.First('c');
         var year = SourceHttp.ParseYear(publication?.First('d'));
 
@@ -123,19 +143,25 @@ public sealed partial class BnfSource(HttpClient http) : IMetadataSource
                 ? int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture)
                 : (int?)null;
 
-        // Une BD se range par série et tome. Le lien 461 les donne
-        // proprement ; à défaut, la zone de titre porte la série en $a, le
-        // numéro en $h et le titre de l'album en $i.
+        // L'UNIMARC distingue ce que la couverture confond : 461 est la
+        // série de l'œuvre (Harry Potter, 3 ; Blacksad, 3), 410 la
+        // collection de l'éditeur (Folio policier, 85). La zone 225 n'est que
+        // leur transcription telle qu'imprimée, l'une ou l'autre : elle n'est
+        // pas lue, pour ne jamais prendre une collection pour une série.
         var seriesLink = fields.FirstOrDefault(f => f.Tag == "461");
+        var collectionLink = fields.FirstOrDefault(f => f.Tag == "410");
         var partTitle = titleField!.First('i');
-        string? series = null;
-        int? volume = null;
+
+        var series = Punctuation(seriesLink?.First('t'));
+        var volume = ParseVolume(seriesLink?.First('v'));
         var title = mainTitle;
 
         if (isComic)
         {
-            series = seriesLink?.First('t') ?? (partTitle is not null ? mainTitle : null);
-            volume = ParseVolume(seriesLink?.First('v') ?? titleField.First('h'));
+            // Sans lien 461, la zone de titre d'un album porte la série en $a,
+            // le numéro en $h et le titre de l'album en $i.
+            series ??= partTitle is not null ? mainTitle : null;
+            volume ??= ParseVolume(titleField.First('h'));
             title = partTitle ?? mainTitle;
         }
         else if (partTitle is not null)
@@ -154,9 +180,114 @@ public sealed partial class BnfSource(HttpClient http) : IMetadataSource
             Isbn = code.Value,
             Series = series,
             Volume = volume,
+            // Lue telle quelle : son point final est celui d'une abréviation
+            // (« Nouvelle éd. »), pas une ponctuation ISBD à retirer.
+            Edition = fields.FirstOrDefault(f => f.Tag == "205")?.First('a'),
+            Collection = Punctuation(collectionLink?.First('t')),
+            CollectionNumber = Punctuation(collectionLink?.First('v')),
+            Genre = isComic ? null : GenreOf(genres, titleField.First('e')),
             Illustrator = isComic ? illustrator : null,
+            Provisional = provisional,
             Source = SourceName
         };
+    }
+
+    /// <summary>
+    /// Une BD se reconnaît à l'un de trois signaux, dont aucun ne suffit
+    /// seul — relevés sur une vingtaine de notices réelles :
+    /// <list type="bullet">
+    ///   <item>
+    ///     la forme du contenu, positions 4 à 7 des données codées (105 $a),
+    ///     qui vaut <c>t</c> pour une bande dessinée. Le plus fiable : présent
+    ///     sur presque toutes les BD, absent des romans, albums jeunesse et
+    ///     livres illustrés ;
+    ///   </item>
+    ///   <item>
+    ///     le genre « Bandes dessinées » ou « Mangas » (608), mais seulement
+    ///     dans les notices relues par le CNLJ, donc surtout en jeunesse ;
+    ///   </item>
+    ///   <item>
+    ///     l'indice 805 du cadre de classement de la Bibliographie nationale
+    ///     française (686) : jamais vu hors BD, mais absent de la plupart.
+    ///   </item>
+    /// </list>
+    /// La présence d'un dessinateur, elle, n'est pas un signal : un album
+    /// jeunesse ou un livre illustré en ont un.
+    /// </summary>
+    internal static bool IsComic(IEnumerable<string> formGenres, string? codedData, IEnumerable<string?> classification)
+    {
+        var contentForm = codedData is { Length: >= 8 } ? codedData[4..8] : string.Empty;
+
+        return contentForm.Contains('t', StringComparison.Ordinal)
+            || formGenres.Any(genre =>
+                genre.Contains("bandes dessinées", StringComparison.OrdinalIgnoreCase)
+                || genre.Contains("mangas", StringComparison.OrdinalIgnoreCase))
+            || classification.Any(code => code?.Trim() == ComicsClassification);
+    }
+
+    /// <summary>
+    /// Genre d'un livre. La BnF ne le donne franchement que pour la
+    /// littérature jeunesse (zone 608, avis du CNLJ, au pluriel : « Romans »).
+    /// À défaut, le complément du titre en porte souvent un (« roman »), mais
+    /// il peut aussi bien porter un sous-titre : il n'est retenu que s'il est
+    /// un genre connu. Sinon, rien — l'utilisateur complète.
+    /// </summary>
+    internal static string? GenreOf(IEnumerable<string> formGenres, string? titleComplement)
+    {
+        foreach (var genre in formGenres)
+        {
+            if (KnownGenres.TryGetValue(Punctuation(genre) ?? string.Empty, out var known))
+            {
+                return known;
+            }
+        }
+
+        return KnownGenres.TryGetValue(Punctuation(titleComplement) ?? string.Empty, out var fromTitle)
+            ? fromTitle
+            : null;
+    }
+
+    /// <summary>
+    /// Formes rencontrées dans les notices, ramenées à un libellé unique : un
+    /// genre sert à regrouper, il ne doit pas exister en trois variantes.
+    /// </summary>
+    private static readonly Dictionary<string, string> KnownGenres = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["roman"] = "Roman",
+        ["romans"] = "Roman",
+        ["roman policier"] = "Policier",
+        ["romans policiers"] = "Policier",
+        ["policier"] = "Policier",
+        ["thriller"] = "Thriller",
+        ["science-fiction"] = "Science-fiction",
+        ["fantasy"] = "Fantasy",
+        ["nouvelles"] = "Nouvelles",
+        ["nouvelle"] = "Nouvelles",
+        ["récit"] = "Récit",
+        ["récits"] = "Récit",
+        ["conte"] = "Conte",
+        ["contes"] = "Conte",
+        ["poésie"] = "Poésie",
+        ["poèmes"] = "Poésie",
+        ["théâtre"] = "Théâtre",
+        ["essai"] = "Essai",
+        ["essais"] = "Essai",
+        ["biographie"] = "Biographie",
+        ["biographies"] = "Biographie",
+        ["documentaire"] = "Documentaire",
+        ["documentaires"] = "Documentaire",
+        ["album"] = "Album",
+        ["albums"] = "Album"
+    };
+
+    /// <summary>
+    /// Retire la ponctuation ISBD de fin (« Harry Potter. ») qui sépare les
+    /// zones dans une notice imprimée et n'a rien à faire dans une valeur.
+    /// </summary>
+    private static string? Punctuation(string? value)
+    {
+        var trimmed = value?.TrimEnd(' ', '.', ',', ';', ':', '/', '=').Trim();
+        return string.IsNullOrEmpty(trimmed) ? null : trimmed;
     }
 
     private static string? PersonName(Field field)
@@ -195,7 +326,7 @@ public sealed partial class BnfSource(HttpClient http) : IMetadataSource
     [GeneratedRegex(@"\d+", RegexOptions.CultureInvariant)]
     private static partial Regex VolumePattern();
 
-    private sealed record Field(string Tag, List<(string Code, string Value)> Subfields)
+    private sealed record Field(string Tag, string Indicator2, List<(string Code, string Value)> Subfields)
     {
         public string? First(char code) =>
             Subfields.FirstOrDefault(s => s.Code.Length == 1 && s.Code[0] == code && s.Value.Length > 0).Value;

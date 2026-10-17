@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Metadata.Api.Features.Films;
 using Metadata.Api.Features.Lookups;
 using Metadata.Api.Infrastructure.Persistence;
 using Metadata.Api.Infrastructure.Sources;
@@ -81,6 +82,7 @@ public static class MetadataApiRegistration
 
         AddSources(services);
         services.AddScoped<LookupService>();
+        services.AddScoped<FilmService>();
         services.AddProblemDetails();
 
         return services;
@@ -106,6 +108,11 @@ public static class MetadataApiRegistration
             http.DefaultRequestHeaders.UserAgent.ParseAdd(
                 serviceProvider.GetRequiredService<IOptions<EnrichmentOptions>>().Value.MusicBrainzUserAgent);
         });
+
+        // OMDb n'est pas une source de code-barres : il n'est pas dans la
+        // chaîne des IMetadataSource, seulement derrière la recherche par titre.
+        services.AddHttpClient<OmdbClient>((serviceProvider, http) =>
+            Configure(http, serviceProvider, o => o.OmdbBaseUrl));
 
         services.AddTransient<IMetadataSource>(sp => sp.GetRequiredService<BnfSource>());
         services.AddTransient<IMetadataSource>(sp => sp.GetRequiredService<OpenLibrarySource>());

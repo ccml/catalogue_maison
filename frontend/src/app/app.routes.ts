@@ -13,6 +13,14 @@ export const routes: Routes = [
     path: 'catalogue/ajouter',
     title: 'Ajouter un média',
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/catalogue/media-type-picker').then((m) => m.MediaTypePicker),
+  },
+  {
+    // Le type est choisi d'abord : l'écran de saisie en dépend.
+    path: 'catalogue/ajouter/:kind',
+    title: 'Ajouter un média',
+    canActivate: [authGuard],
     loadComponent: () => import('./features/catalogue/media-form').then((m) => m.MediaForm),
   },
   {

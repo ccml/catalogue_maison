@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { ScanResult } from '../../core/api/media.models';
-import { normalizeCode, scanNotice, sourceLabel } from './scan';
+import {
+  filmDraftNotice,
+  filmSearchNotice,
+  isIsbn,
+  normalizeCode,
+  scanNotice,
+  sourceLabel,
+} from './scan';
 
 describe('normalizeCode', () => {
   it.each([
@@ -37,6 +44,27 @@ describe('scanNotice', () => {
     expect(notice.text).toContain('Bibliothèque nationale de France');
   });
 
+  it('dit que le type a changé quand la notice décrit autre chose que le type choisi', () => {
+    const result: ScanResult = { ...base, draft: { type: 'ComicBook', title: 'Astérix chez les Belges' } };
+
+    expect(scanNotice(result, 'Book').text).toContain('La notice décrit une BD : le type a été changé.');
+    expect(scanNotice(result, 'ComicBook').text).not.toContain('le type a été changé');
+  });
+
+  it('fait vérifier le type quand la notice est provisoire', () => {
+    // Le cas réel : une BD tout juste parue, décrite par l'éditeur avant
+    // catalogage, revient sans rien qui dise qu'elle est une BD.
+    const notice = scanNotice({
+      ...base,
+      provisional: true,
+      draft: { type: 'Book', title: 'Le Problème à trois corps - Tome 01' },
+    });
+
+    expect(notice.tone).toBe('attention');
+    expect(notice.text).toContain('notice provisoire');
+    expect(notice.text).toContain('d’un livre');
+  });
+
   it('signale que l’ISBN est noté quand aucune notice n’est trouvée', () => {
     const notice = scanNotice({
       ...base,
@@ -71,5 +99,33 @@ describe('scanNotice', () => {
   it('nomme une source inconnue par son identifiant', () => {
     expect(sourceLabel('discogs')).toBe('discogs');
     expect(sourceLabel(null)).toBe('une source externe');
+  });
+});
+
+describe('isIsbn', () => {
+  it.each([
+    ['9782205059250', true],
+    ['9791090636071', true],
+    ['2205059254', true],
+    ['0724384260958', false],
+    ['724384260958', false],
+    ['96385074', false],
+  ])('%s → %s', (code, expected) => {
+    expect(isIsbn(code)).toBe(expected);
+  });
+});
+
+describe('recherche de films', () => {
+  it('ne dit rien quand des films sont proposés : la liste parle d’elle-même', () => {
+    expect(filmSearchNotice({ films: [{ id: 'tt1375666', title: 'Inception', year: '2010' }], unavailable: false })).toBeNull();
+  });
+
+  it('distingue « aucun film » de « recherche indisponible »', () => {
+    expect(filmSearchNotice({ films: [], unavailable: false })?.text).toContain('Aucun film');
+    expect(filmSearchNotice({ films: [], unavailable: true })?.text).toContain('ne répond pas');
+  });
+
+  it('prévient que la fiche d’OMDb est en anglais', () => {
+    expect(filmDraftNotice('omdb').text).toContain('OMDb, qui donne titre et genre en anglais');
   });
 });

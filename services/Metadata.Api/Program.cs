@@ -1,3 +1,4 @@
+using Metadata.Api.Features.Films;
 using Metadata.Api.Features.Lookups;
 using Metadata.Api.Infrastructure;
 
@@ -9,6 +10,7 @@ var app = builder.Build();
 
 app.UseMetadataApi();
 app.MapLookupEndpoints();
+app.MapFilmEndpoints();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();

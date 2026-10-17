@@ -19,4 +19,19 @@ public sealed class KeycloakOptions
     /// autre chose que du HTTPS ailleurs.
     /// </summary>
     public bool RequireHttpsMetadata { get; init; } = true;
+
+    /// <summary>
+    /// Autres URL sous lesquelles <strong>le même realm</strong> peut être
+    /// joint, et donc autres <c>issuer</c> acceptés. Keycloak tire l'issuer
+    /// de l'URL par laquelle on l'appelle : à travers le relais HTTPS du
+    /// frontend (<c>tools/dev.sh front-lan</c>), un jeton porte l'origine vue
+    /// par le téléphone, pas <see cref="Authority"/>.
+    /// <para>
+    /// Ce n'est pas un assouplissement : l'issuer reste vérifié contre une
+    /// liste fermée, la signature contre les clés du realm. Vide par défaut,
+    /// renseigné par l'environnement — jamais en dur, l'adresse d'un poste
+    /// n'a rien à faire dans le dépôt.
+    /// </para>
+    /// </summary>
+    public string[] AdditionalIssuers { get; init; } = [];
 }

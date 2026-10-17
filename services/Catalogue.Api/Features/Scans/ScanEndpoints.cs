@@ -45,9 +45,13 @@ public static class ScanEndpoints
 
         // Le doublon se cherche dans le schéma du ménage du jeton, et
         // nulle part ailleurs : un code présent chez un autre ménage n'est
-        // pas un doublon, il n'existe pas.
-        if (IsbnFormat.IsIsbn(normalized)
-            && await MediaEndpoints.FindByIsbnAsync(db, normalized, cancellationToken) is { } existing)
+        // pas un doublon, il n'existe pas. Un ISBN se cherche parmi les
+        // ISBN, tout autre code parmi les codes-barres des disques.
+        var existing = IsbnFormat.IsIsbn(normalized)
+            ? await MediaEndpoints.FindByIsbnAsync(db, normalized, cancellationToken)
+            : await MediaEndpoints.FindByBarcodeAsync(db, normalized, cancellationToken);
+
+        if (existing is not null)
         {
             return TypedResults.Ok(new ScanResponse(
                 normalized,
@@ -64,7 +68,7 @@ public static class ScanEndpoints
             && ScanDraftMapper.FromRecord(record, normalized, clock.GetUtcNow()) is { } draft)
         {
             return TypedResults.Ok(new ScanResponse(
-                normalized, Existing: null, draft, EnrichmentStatus.Found, record.Source));
+                normalized, Existing: null, draft, EnrichmentStatus.Found, record.Source, record.Provisional));
         }
 
         var status = lookup.Outcome == MetadataLookupOutcome.Unavailable

@@ -176,6 +176,11 @@ button.discret:hover {
   gap: 0.6rem;
 }
 
+/* Le libellé occupe sa propre ligne, au-dessus du champ et des boutons. */
+.scan-code label {
+  flex-basis: 100%;
+}
+
 .scan-code input {
   flex: 1 1 12rem;
   width: auto;
@@ -206,4 +211,36 @@ button.secondaire:hover:not(:disabled) {
 
 .scan-notice.attention {
   border-inline-start-color: var(--ochre);
+}
+
+/* Résultats d'une recherche de films : une liste de choix, pas encore une fiche. */
+.films {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--shelf);
+}
+
+.films li {
+  border-bottom: 1px solid var(--shelf);
+}
+
+button.choix {
+  width: 100%;
+  text-align: start;
+  background: none;
+  border: 0;
+  padding: 0.55rem 0.2rem;
+  font-family: var(--serif);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button.choix:hover:not(:disabled) {
+  color: var(--pine);
+}
+
+button.choix .annee {
+  font-family: var(--sans);
+  color: var(--ink-soft);
 }

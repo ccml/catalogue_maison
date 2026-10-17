@@ -133,6 +133,57 @@ public sealed class LookupTests(MetadataApiFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Une_notice_provisoire_est_redemandee_au_bout_d_une_semaine()
+    {
+        // Gardée 180 jours, elle masquerait la notice définitive — celle qui
+        // dit qu'une BD est une BD — pendant six mois.
+        fixture.Books.Answer = _ => Blacksad("livres") with { Provisional = true };
+        var client = fixture.ServiceClient();
+        await client.GetAsync($"/lookups/{Isbn}");
+
+        await AgeCacheAsync(TimeSpan.FromDays(8));
+        fixture.Books.Answer = _ => Blacksad("livres");
+
+        var response = await client.GetFromJsonAsync<LookupResponse>($"/lookups/{Isbn}", Json);
+
+        Assert.False(response!.Record.Provisional);
+        Assert.Equal(2, fixture.Books.Calls);
+    }
+
+    [Fact]
+    public async Task Une_notice_definitive_reste_en_cache_au_dela_d_une_semaine()
+    {
+        fixture.Books.Answer = _ => Blacksad("livres");
+        var client = fixture.ServiceClient();
+        await client.GetAsync($"/lookups/{Isbn}");
+
+        await AgeCacheAsync(TimeSpan.FromDays(8));
+        await client.GetAsync($"/lookups/{Isbn}");
+
+        Assert.Equal(1, fixture.Books.Calls);
+    }
+
+    [Fact]
+    public async Task Une_notice_ecrite_sous_une_forme_anterieure_est_redemandee()
+    {
+        // Une source qui apprend à lire un champ de plus ne doit pas laisser
+        // servir pendant des mois des notices qui ne le portent pas.
+        fixture.Books.Answer = _ => Blacksad("livres");
+        var client = fixture.ServiceClient();
+        await client.GetAsync($"/lookups/{Isbn}");
+
+        using (var scope = fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MetadataDbContext>();
+            await db.Lookups.ExecuteUpdateAsync(s => s.SetProperty(l => l.RecordVersion, 1));
+        }
+
+        await client.GetAsync($"/lookups/{Isbn}");
+
+        Assert.Equal(2, fixture.Books.Calls);
+    }
+
+    [Fact]
     public async Task Un_code_barres_de_disque_n_est_pas_soumis_aux_sources_de_livres()
     {
         fixture.Music.Answer = code => new MetadataRecord

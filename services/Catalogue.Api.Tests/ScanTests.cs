@@ -62,6 +62,26 @@ public sealed class ScanTests(CatalogueApiFixture fixture) : IClassFixture<Catal
     }
 
     [Fact]
+    public async Task Une_notice_provisoire_est_signalee_au_frontend()
+    {
+        fixture.Metadata.Answer = _ => new MetadataLookup(MetadataLookupOutcome.Found, new MetadataRecordDto
+        {
+            Kind = "Book",
+            Title = "Le Problème à trois corps - Tome 01",
+            Publisher = "Glénat",
+            Source = "bnf",
+            Provisional = true
+        });
+        var client = fixture.ClientFor(CatalogueApiFixture.HouseholdA, Roles.Adult);
+
+        var scan = await client.GetFromJsonAsync<ScanResponse>("/scans/9782344075173", CatalogueApiFixture.Json);
+
+        Assert.True(scan!.Provisional);
+        Assert.Equal(EnrichmentStatus.Found, scan.Enrichment);
+        Assert.Equal(MediaType.Book, scan.Draft?.Type);
+    }
+
+    [Fact]
     public async Task La_fiche_proposee_s_enregistre_telle_quelle()
     {
         // La fiche renvoyée par le scan doit être une fiche que l'API

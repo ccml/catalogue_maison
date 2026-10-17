@@ -13,6 +13,7 @@ public static class ScanDraftMapper
 {
     private const int MaxTitleLength = 512;
     private const int MaxTextLength = 256;
+    private const int MaxCollectionNumberLength = 32;
 
     /// <summary>
     /// Fiche tirée d'une notice, ou <c>null</c> si la notice ne décrit rien
@@ -44,7 +45,12 @@ public static class ScanDraftMapper
             {
                 Isbn = isbn,
                 Publisher = Text(record.Publisher, MaxTextLength),
-                Pages = Positive(record.Pages)
+                Pages = Positive(record.Pages),
+                Series = Text(record.Series, MaxTextLength),
+                Volume = Positive(record.Volume),
+                Collection = Text(record.Collection, MaxTextLength),
+                CollectionNumber = Text(record.CollectionNumber, MaxCollectionNumberLength),
+                Genre = Text(record.Genre, MaxTextLength)
             },
             "ComicBook" => new ComicBookSpecifics
             {
@@ -52,13 +58,25 @@ public static class ScanDraftMapper
                 Volume = Positive(record.Volume),
                 Illustrator = Text(record.Illustrator, MaxTextLength),
                 Publisher = Text(record.Publisher, MaxTextLength),
-                Isbn = isbn
+                Isbn = isbn,
+                Collection = Text(record.Collection, MaxTextLength),
+                CollectionNumber = Text(record.CollectionNumber, MaxCollectionNumberLength),
+                Edition = Text(record.Edition, MaxTextLength)
             },
             "Music" => new MusicSpecifics
             {
+                // Le code scanné est conservé : c'est lui qui fera reconnaître
+                // le disque comme déjà possédé au prochain scan.
+                Barcode = IsbnFormat.IsIsbn(code) ? null : BarcodeFormat.Normalize(code),
                 Label = Text(record.Label, MaxTextLength),
                 Format = Text(record.Format, MaxTextLength),
                 Tracks = record.Tracks.Select(t => Text(t, MaxTitleLength)).OfType<string>().ToList()
+            },
+            "Film" => new FilmSpecifics
+            {
+                DurationMinutes = Positive(record.DurationMinutes),
+                Genre = Text(record.Genre, MaxTextLength),
+                Actors = record.Actors.Select(a => Text(a, MaxTextLength)).OfType<string>().Distinct(StringComparer.Ordinal).ToList()
             },
             _ => null
         };
@@ -93,6 +111,7 @@ public static class ScanDraftMapper
     {
         "ComicBook" => MediaType.ComicBook,
         "Music" => MediaType.Music,
+        "Film" => MediaType.Film,
         _ => MediaType.Book
     };
 

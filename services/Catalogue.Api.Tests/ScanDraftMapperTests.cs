@@ -37,6 +37,47 @@ public sealed class ScanDraftMapperTests
     }
 
     [Fact]
+    public void Un_livre_garde_sa_serie_sa_collection_et_son_genre()
+    {
+        var draft = ScanDraftMapper.FromRecord(new MetadataRecordDto
+        {
+            Kind = "Book",
+            Title = "Harry Potter et le prisonnier d'Azkaban",
+            Series = "Harry Potter",
+            Volume = 3,
+            Collection = "Folio junior",
+            CollectionNumber = "1006",
+            Genre = "Roman"
+        }, "9782070541300", Now);
+
+        var book = Assert.IsType<BookSpecifics>(draft!.Specifics);
+        Assert.Equal("Harry Potter", book.Series);
+        Assert.Equal(3, book.Volume);
+        Assert.Equal("Folio junior", book.Collection);
+        Assert.Equal("1006", book.CollectionNumber);
+        Assert.Equal("Roman", book.Genre);
+    }
+
+    [Fact]
+    public void Une_BD_garde_sa_collection_et_sa_mention_d_edition()
+    {
+        var draft = ScanDraftMapper.FromRecord(new MetadataRecordDto
+        {
+            Kind = "ComicBook",
+            Title = "Romance dawn",
+            Series = "One piece",
+            Volume = 1,
+            Collection = "Shonen manga",
+            Edition = "Nouvelle éd."
+        }, "9782723488525", Now);
+
+        var comic = Assert.IsType<ComicBookSpecifics>(draft!.Specifics);
+        Assert.Equal("Shonen manga", comic.Collection);
+        Assert.Equal("Nouvelle éd.", comic.Edition);
+        Assert.Equal("9782723488525", comic.Isbn);
+    }
+
+    [Fact]
     public void Plusieurs_auteurs_partagent_la_colonne_createur()
     {
         var draft = ScanDraftMapper.FromRecord(new MetadataRecordDto
@@ -106,7 +147,7 @@ public sealed class ScanDraftMapperTests
     }
 
     [Theory]
-    [InlineData("Film")]
+    [InlineData("Game")]
     [InlineData("")]
     public void Une_notice_d_un_type_inconnu_ne_donne_pas_de_fiche(string kind)
     {

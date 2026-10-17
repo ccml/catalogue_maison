@@ -71,7 +71,17 @@ public sealed class CatalogueDbContext : DbContext
              .HasMaxLength(256)
              .HasComputedColumnSql("specifics ->> 'series'", stored: true);
 
+        // Promotion du code-barres : c'est par lui qu'un disque, qui n'a pas
+        // d'ISBN, est reconnu au scan. Lu quel que soit le type, de sorte
+        // qu'un film ou un jeu qui en porterait un un jour ne demande aucune
+        // nouvelle migration.
+        media.Property(m => m.Barcode)
+             .HasColumnName("barcode")
+             .HasMaxLength(13)
+             .HasComputedColumnSql("specifics ->> 'barcode'", stored: true);
+
         media.HasIndex(m => m.Isbn);
+        media.HasIndex(m => m.Barcode);
         media.HasIndex(m => m.Series);
         media.HasIndex(m => m.Type);
         media.HasIndex(m => m.AddedAt);

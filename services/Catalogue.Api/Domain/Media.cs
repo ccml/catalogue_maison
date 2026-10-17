@@ -40,6 +40,13 @@ public class Media
     public string? Isbn { get; private set; }
 
     /// <summary>
+    /// Colonne générée depuis <c>specifics -&gt; 'barcode'</c>, indexée : un
+    /// disque déjà possédé est reconnu au scan par son code-barres. Jamais
+    /// écrite depuis le C#.
+    /// </summary>
+    public string? Barcode { get; private set; }
+
+    /// <summary>
     /// Colonne générée depuis <c>specifics -&gt; 'series'</c>, indexée : on
     /// cherche une BD par sa série avant de la chercher par le titre de
     /// l'album. Jamais écrite depuis le C#.
@@ -195,13 +202,14 @@ public class Media
     }
 
     /// <summary>
-    /// Normalise ce qui doit l'être avant stockage — l'ISBN en premier, dont
-    /// dépend la colonne générée.
+    /// Normalise ce qui doit l'être avant stockage — l'ISBN et le code-barres,
+    /// dont dépendent les colonnes générées.
     /// </summary>
     private static MediaSpecifics? Canonicalize(MediaSpecifics? specifics) => specifics switch
     {
         BookSpecifics book => book with { Isbn = IsbnFormat.Normalize(book.Isbn) },
         ComicBookSpecifics comic => comic with { Isbn = IsbnFormat.Normalize(comic.Isbn) },
+        MusicSpecifics music => music with { Barcode = BarcodeFormat.Normalize(music.Barcode) },
         _ => specifics
     };
 }

@@ -40,9 +40,15 @@ public sealed record ScanDraft(
 /// <param name="Draft">Fiche pré-remplie, absente si le média existe déjà ou si rien n'est connu du code.</param>
 /// <param name="Enrichment">Ce que l'enrichissement a pu faire.</param>
 /// <param name="Source">Identifiant de la source de la notice (<c>bnf</c>, <c>openlibrary</c>, <c>musicbrainz</c>).</param>
+/// <param name="Provisional">
+/// Vrai si la notice est provisoire : décrite par l'éditeur avant catalogage,
+/// elle peut se taire sur le type — une BD y passe pour un livre. Le frontend
+/// en avertit l'utilisateur plutôt que de deviner.
+/// </param>
 public sealed record ScanResponse(
     string Code,
     MediaSummaryResponse? Existing,
     ScanDraft? Draft,
     EnrichmentStatus Enrichment,
-    string? Source = null);
+    string? Source = null,
+    bool Provisional = false);

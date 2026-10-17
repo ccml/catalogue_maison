@@ -16,6 +16,20 @@ namespace Metadata.Api.Infrastructure.Persistence;
 /// </summary>
 public sealed class CachedLookup
 {
+    /// <summary>
+    /// Version de la forme des notices. À incrémenter quand une source
+    /// apprend à lire un champ de plus : les notices écrites avant sont alors
+    /// tenues pour périmées et redemandées, au lieu de servir des mois durant
+    /// une notice amputée de ce champ.
+    /// <list type="bullet">
+    ///   <item>1 — notice initiale.</item>
+    ///   <item>2 — série et tome d'un livre, collection et numéro, genre.</item>
+    ///   <item>3 — BD reconnue par la forme du contenu ; mention d'édition.</item>
+    ///   <item>4 — notice provisoire signalée ; fiches de films (durée, acteurs).</item>
+    /// </list>
+    /// </summary>
+    public const int CurrentRecordVersion = 4;
+
     private CachedLookup()
     {
         // Réservé à EF Core.
@@ -30,15 +44,29 @@ public sealed class CachedLookup
 
     public DateTimeOffset FetchedAt { get; private set; }
 
+    /// <summary>Version de la forme de la notice à son écriture (<see cref="CurrentRecordVersion"/>).</summary>
+    public int RecordVersion { get; private set; }
+
     public static CachedLookup Create(ProductCode code, MetadataRecord? record, DateTimeOffset fetchedAt) =>
-        new() { Code = code.Value, Record = record, FetchedAt = fetchedAt };
+        new() { Code = code.Value, Record = record, FetchedAt = fetchedAt, RecordVersion = CurrentRecordVersion };
 
     public void Refresh(MetadataRecord? record, DateTimeOffset fetchedAt)
     {
         Record = record;
         FetchedAt = fetchedAt;
+        RecordVersion = CurrentRecordVersion;
     }
 
-    public bool IsFresh(DateTimeOffset now, TimeSpan foundTtl, TimeSpan notFoundTtl) =>
-        now - FetchedAt < (Record is null ? notFoundTtl : foundTtl);
+    /// <summary>
+    /// Vrai si la notice peut être servie sans redemander les sources : dans
+    /// son délai, et écrite sous la forme actuelle.
+    /// </summary>
+    public bool IsFresh(DateTimeOffset now, TimeSpan foundTtl, TimeSpan notFoundTtl, TimeSpan provisionalTtl) =>
+        RecordVersion == CurrentRecordVersion
+        && now - FetchedAt < Record switch
+        {
+            null => notFoundTtl,
+            { Provisional: true } => provisionalTtl,
+            _ => foundTtl
+        };
 }

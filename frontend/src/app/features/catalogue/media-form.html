@@ -1,24 +1,24 @@
-<h1>{{ correction() ? 'Corriger la fiche' : 'Ajouter un média' }}</h1>
+<h1>{{ correction() ? 'Corriger la fiche' : addTitles[currentType()] }}</h1>
 <p class="lede">
   @if (correction()) {
     Le type se change aussi : un album de BD pris pour un livre se corrige ici.
   } @else {
-    Le type et le titre suffisent. Le reste peut attendre.
+    Seul le titre est requis. Le reste peut attendre.
+    <a routerLink="/catalogue/ajouter">Changer de type</a>
   }
 </p>
 
-@if (!correction()) {
+@if (!correction() && offersScan()) {
   <section class="scan" aria-labelledby="scan-titre">
-    <h2 id="scan-titre">Par son code-barres</h2>
+    <h2 id="scan-titre">{{ chosenType() === 'Music' ? 'Par son code-barres' : 'Par son ISBN' }}</h2>
 
     <form class="scan-code" [formGroup]="scanForm" (ngSubmit)="chercheCode()" novalidate>
-      <label class="a11y-only" for="code">Code-barres ou ISBN</label>
+      <label for="code">{{ chosenType() === 'Music' ? 'Code-barres' : 'ISBN' }}</label>
       <input
         id="code"
         type="text"
         inputmode="numeric"
         autocomplete="off"
-        placeholder="ISBN ou code-barres"
         formControlName="code"
       />
       <button type="submit" [disabled]="searching()">
@@ -52,6 +52,39 @@
         }
       </p>
     }
+
+  </section>
+}
+
+@if (!correction() && chosenType() === 'Film' && filmSearchAvailable()) {
+  <section class="scan" aria-labelledby="film-titre">
+    <h2 id="film-titre">Par son titre</h2>
+
+    <form class="scan-code" [formGroup]="filmForm" (ngSubmit)="chercheFilm()" novalidate>
+      <label for="titre-film">Titre du film</label>
+      <input id="titre-film" type="text" autocomplete="off" formControlName="title" />
+      <button type="submit" [disabled]="filmSearching()">
+        {{ filmSearching() ? 'Recherche' : 'Chercher' }}
+      </button>
+    </form>
+
+    @if (films(); as resultats) {
+      @if (resultats.length > 0) {
+        <ul class="films" aria-label="Films trouvés">
+          @for (film of resultats; track film.id) {
+            <li>
+              <button type="button" class="choix" (click)="choisisFilm(film)" [disabled]="filmSearching()">
+                {{ film.title }}@if (film.year) { <span class="annee">({{ film.year }})</span> }
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    }
+
+    @if (filmNotice(); as note) {
+      <p class="scan-notice" [class.attention]="note.tone === 'attention'" role="status">{{ note.text }}</p>
+    }
   </section>
 }
 
@@ -60,14 +93,16 @@
 }
 
 <form class="fiche" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-  <div class="field">
-    <label for="type">Type</label>
-    <select id="type" formControlName="type">
-      @for (mediaType of types; track mediaType) {
-        <option [value]="mediaType">{{ labels[mediaType] }}</option>
-      }
-    </select>
-  </div>
+  @if (correction()) {
+    <div class="field">
+      <label for="type">Type</label>
+      <select id="type" formControlName="type">
+        @for (mediaType of types; track mediaType) {
+          <option [value]="mediaType">{{ labels[mediaType] }}</option>
+        }
+      </select>
+    </div>
+  }
 
   <div class="field">
     <label for="titre">Titre</label>
@@ -83,7 +118,7 @@
   </div>
 
   <div class="field">
-    <label for="createur">Auteur, réalisateur ou artiste</label>
+    <label for="createur">{{ creatorLabels[currentType()] }}</label>
     <input id="createur" type="text" formControlName="creator" />
   </div>
 
@@ -99,7 +134,6 @@
         id="emplacement"
         type="text"
         formControlName="location"
-        placeholder="Salon, étagère du haut"
       />
     </div>
   </div>
@@ -115,6 +149,25 @@
         </div>
         <div class="pair">
           <div class="field">
+            <label for="serie-livre">Série</label>
+            <input id="serie-livre" type="text" formControlName="series" />
+          </div>
+          <div class="field">
+            <label for="tome-livre">Tome</label>
+            <input id="tome-livre" type="text" inputmode="numeric" formControlName="volume" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="genre">Genre</label>
+          <input id="genre" type="text" formControlName="genre" list="genres" autocomplete="off" />
+          <datalist id="genres">
+            @for (genre of genres; track genre) {
+              <option [value]="genre"></option>
+            }
+          </datalist>
+        </div>
+        <div class="pair">
+          <div class="field">
             <label for="editeur">Éditeur</label>
             <input id="editeur" type="text" formControlName="publisher" />
           </div>
@@ -123,12 +176,22 @@
             <input id="pages" type="text" inputmode="numeric" formControlName="pages" />
           </div>
         </div>
+        <div class="pair">
+          <div class="field">
+            <label for="collection">Collection</label>
+            <input id="collection" type="text" formControlName="collection" />
+          </div>
+          <div class="field">
+            <label for="numero-collection">Numéro dans la collection</label>
+            <input id="numero-collection" type="text" formControlName="collectionNumber" />
+          </div>
+        </div>
       }
       @case ('ComicBook') {
         <div class="pair">
           <div class="field">
             <label for="serie">Série</label>
-            <input id="serie" type="text" formControlName="series" placeholder="Blacksad" />
+            <input id="serie" type="text" formControlName="series" />
           </div>
           <div class="field">
             <label for="tome">Tome</label>
@@ -149,6 +212,20 @@
             <input id="isbn-bd" type="text" inputmode="numeric" formControlName="isbn" />
           </div>
         </div>
+        <div class="pair">
+          <div class="field">
+            <label for="collection-bd">Collection</label>
+            <input id="collection-bd" type="text" formControlName="collection" />
+          </div>
+          <div class="field">
+            <label for="numero-collection-bd">Numéro dans la collection</label>
+            <input id="numero-collection-bd" type="text" formControlName="collectionNumber" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="edition-bd">Édition</label>
+          <input id="edition-bd" type="text" formControlName="edition" />
+        </div>
       }
       @case ('Music') {
         <div class="pair">
@@ -158,8 +235,12 @@
           </div>
           <div class="field">
             <label for="format">Format</label>
-            <input id="format" type="text" formControlName="format" placeholder="Vinyle, CD" />
+            <input id="format" type="text" formControlName="format" />
           </div>
+        </div>
+        <div class="field">
+          <label for="code-barres">Code-barres</label>
+          <input id="code-barres" type="text" inputmode="numeric" formControlName="barcode" />
         </div>
         <div class="field">
           <label for="pistes">Pistes, une par ligne</label>
@@ -178,8 +259,16 @@
           </div>
         </div>
         <div class="field">
+          <label for="genre-film">Genre</label>
+          <input id="genre-film" type="text" formControlName="genre" />
+        </div>
+        <div class="field">
+          <label for="acteurs">Acteurs, un par ligne</label>
+          <textarea id="acteurs" rows="3" formControlName="actors"></textarea>
+        </div>
+        <div class="field">
           <label for="support">Support</label>
-          <input id="support" type="text" formControlName="support" placeholder="DVD, Blu-ray" />
+          <input id="support" type="text" formControlName="support" />
         </div>
       }
       @case ('Game') {

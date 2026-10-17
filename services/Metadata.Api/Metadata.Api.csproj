@@ -8,6 +8,8 @@
     <RootNamespace>Metadata.Api</RootNamespace>
     <AssemblyName>Metadata.Api</AssemblyName>
     <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Clé OMDb en développement : dotnet user-secrets, hors du dépôt. -->
+    <UserSecretsId>cataloguemaison-metadata-api</UserSecretsId>
   </PropertyGroup>
 
   <!-- Les versions sont dans Directory.Packages.props, à la racine. -->

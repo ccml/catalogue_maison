@@ -122,6 +122,28 @@ public static class MediaEndpoints
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Média du ménage portant ce code-barres, sous sa forme canonique
+    /// (EAN-13) : un UPC-A et son EAN-13 désignent le même disque.
+    /// </summary>
+    internal static async Task<Media?> FindByBarcodeAsync(
+        CatalogueDbContext db,
+        string? barcode,
+        CancellationToken cancellationToken)
+    {
+        var normalized = BarcodeFormat.Normalize(barcode);
+        if (normalized is null)
+        {
+            return null;
+        }
+
+        return await db.Medias
+            .AsNoTracking()
+            .Where(m => m.Barcode == normalized)
+            .OrderBy(m => m.AddedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     private static async Task<Results<Created<MediaDetailResponse>, ValidationProblem>> CreateAsync(
         CreateMediaRequest request,
         CatalogueDbContext db,

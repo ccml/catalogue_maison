@@ -4,6 +4,8 @@ import type { Observable } from 'rxjs';
 import { APP_SETTINGS } from '../app-settings';
 import type {
   CreateMediaRequest,
+  FilmDraftResult,
+  FilmSearchResult,
   MediaDetail,
   MediaQuery,
   MediaSummary,
@@ -62,6 +64,24 @@ export class CatalogueApi {
    */
   scan(code: string): Observable<ScanResult> {
     return this.http.get<ScanResult>(`${this.baseUrl}/scans/${encodeURIComponent(code)}`);
+  }
+
+  /**
+   * Vrai si la recherche de films par titre est en service : elle n'existe
+   * que si le backend dispose d'une clé OMDb.
+   */
+  filmSearchAvailable(): Observable<{ readonly enabled: boolean }> {
+    return this.http.get<{ readonly enabled: boolean }>(`${this.baseUrl}/films/availability`);
+  }
+
+  searchFilms(title: string): Observable<FilmSearchResult> {
+    const params = new HttpParams().set('title', title.trim());
+    return this.http.get<FilmSearchResult>(`${this.baseUrl}/films`, { params });
+  }
+
+  /** Fiche pré-remplie d'un film, d'après son identifiant IMDb. Rien n'est enregistré. */
+  film(id: string): Observable<FilmDraftResult> {
+    return this.http.get<FilmDraftResult>(`${this.baseUrl}/films/${encodeURIComponent(id)}`);
   }
 
   create(request: CreateMediaRequest): Observable<MediaDetail> {

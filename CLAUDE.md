@@ -268,9 +268,11 @@ Conséquences à respecter :
   est garantie **côté C#**, par un type par média et une validation à
   l'entrée. Aucune écriture directe de JSON brut.
 - Un champ JSON qui devient un critère de recherche fréquent est **promu en
-  colonne générée indexée**, sans réécrire les données. Deux champs le sont à
-  ce jour : l'**ISBN**, pour le chemin « scan », et la **série** d'une BD,
-  parce qu'on cherche un album par sa série bien avant son titre. La
+  colonne générée indexée**, sans réécrire les données. Trois champs le sont à
+  ce jour : l'**ISBN**, pour le chemin « scan », la **série** d'une BD,
+  parce qu'on cherche un album par sa série bien avant son titre, et le
+  **code-barres** d'un disque (stocké en EAN-13, un UPC-A y est ramené),
+  pour reconnaître au scan un disque déjà possédé. La
   promotion est une migration, mais purement additive — elle ne touche aucune
   donnée déjà saisie.
 
@@ -292,8 +294,7 @@ tous optionnels — qui ne valide plus rien.
 
 Le prix assumé : on ne peut pas écrire de LINQ EF Core sur l'intérieur du
 JSON. C'est précisément à quoi répond la promotion en colonne générée
-ci-dessus, et l'ISBN, seul critère de recherche fréquent identifié à ce jour,
-est déjà promu.
+ci-dessus : l'ISBN, la série et le code-barres sont déjà promus.
 
 La politique de nommage JSON (camelCase) fait partie du **contrat de
 stockage** : la colonne générée lit `specifics ->> 'isbn'`. La changer

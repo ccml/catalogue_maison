@@ -7,11 +7,21 @@
 
 export type MediaType = 'Book' | 'ComicBook' | 'Music' | 'Film' | 'Game';
 
+/**
+ * Un livre. La série (Harry Potter, tome 3) appartient à l'œuvre, la
+ * collection (Folio policier, n° 85) à l'édition : ce sont deux champs.
+ */
 export interface BookSpecifics {
   readonly type: 'book';
   readonly isbn?: string | null;
   readonly publisher?: string | null;
   readonly pages?: number | null;
+  readonly series?: string | null;
+  readonly volume?: number | null;
+  readonly collection?: string | null;
+  /** Du texte : certaines collections numérotent « LP 3121 ». */
+  readonly collectionNumber?: string | null;
+  readonly genre?: string | null;
 }
 
 /** Une BD se range par série et tome : c'est ainsi qu'on la cherche. */
@@ -22,6 +32,10 @@ export interface ComicBookSpecifics {
   readonly illustrator?: string | null;
   readonly publisher?: string | null;
   readonly isbn?: string | null;
+  readonly collection?: string | null;
+  readonly collectionNumber?: string | null;
+  /** Mention d'édition : « Éd. de luxe », « Nouvelle éd. ». */
+  readonly edition?: string | null;
 }
 
 export interface MusicSpecifics {
@@ -29,6 +43,8 @@ export interface MusicSpecifics {
   readonly label?: string | null;
   readonly format?: string | null;
   readonly tracks?: readonly string[];
+  /** Code-barres du disque, renvoyé sous sa forme EAN-13. Clé des doublons au scan. */
+  readonly barcode?: string | null;
 }
 
 export interface FilmSpecifics {
@@ -36,6 +52,10 @@ export interface FilmSpecifics {
   readonly studio?: string | null;
   readonly durationMinutes?: number | null;
   readonly support?: string | null;
+  /** Tel qu'OMDb le donne, en anglais : « Action, Sci-Fi ». */
+  readonly genre?: string | null;
+  /** Le réalisateur, lui, est dans `creator`. */
+  readonly actors?: readonly string[];
 }
 
 export interface GameSpecifics {
@@ -112,6 +132,45 @@ export const mediaTypeLabels: Readonly<Record<MediaType, string>> = {
   Game: 'Jeu',
 };
 
+/**
+ * Segment d'URL de chaque type, pour l'ajout (`/catalogue/ajouter/bd`). En
+ * français : c'est une adresse que l'utilisateur voit.
+ */
+export const mediaTypeSlugs: Readonly<Record<MediaType, string>> = {
+  Book: 'livre',
+  ComicBook: 'bd',
+  Music: 'musique',
+  Film: 'film',
+  Game: 'jeu',
+};
+
+/** Type désigné par un segment d'URL, ou `null` s'il n'en désigne aucun. */
+export function mediaTypeFromSlug(slug: string | null | undefined): MediaType | null {
+  return mediaTypes.find((type) => mediaTypeSlugs[type] === slug) ?? null;
+}
+
+/** Titre de l'écran d'ajout : l'article change avec le type. */
+export const addTitles: Readonly<Record<MediaType, string>> = {
+  Book: 'Ajouter un livre',
+  ComicBook: 'Ajouter une BD',
+  Music: 'Ajouter un disque',
+  Film: 'Ajouter un film',
+  Game: 'Ajouter un jeu',
+};
+
+/**
+ * Libellé du créateur selon le type. Une seule colonne en base — le rôle
+ * sémantique est le même — mais un libellé juste à l'écran : on ne cherche
+ * pas le « réalisateur » d'un livre.
+ */
+export const creatorLabels: Readonly<Record<MediaType, string>> = {
+  Book: 'Auteur',
+  ComicBook: 'Scénariste',
+  Music: 'Artiste',
+  Film: 'Réalisateur',
+  Game: 'Auteur',
+};
+
 /** Spécificités vides d'un type donné, pour amorcer un formulaire. */
 export function emptySpecifics(type: MediaType): MediaSpecifics {
   switch (type) {
@@ -156,4 +215,50 @@ export interface ScanResult {
   readonly enrichment: EnrichmentStatus;
   /** Identifiant de la source de la notice : `bnf`, `openlibrary`, `musicbrainz`. */
   readonly source?: string | null;
+  /**
+   * Notice provisoire, décrite par l'éditeur avant catalogage : elle peut se
+   * taire sur le type (une BD y passe pour un livre). Absent si faux.
+   */
+  readonly provisional?: boolean;
+}
+
+/**
+ * Genres proposés à la saisie. Le champ reste libre, mais des libellés
+ * communs évitent qu'un même genre existe en trois variantes — ce sont ceux
+ * que Metadata.Api renvoie quand la source en donne un.
+ */
+export const bookGenres: readonly string[] = [
+  'Roman',
+  'Policier',
+  'Thriller',
+  'Science-fiction',
+  'Fantasy',
+  'Nouvelles',
+  'Récit',
+  'Conte',
+  'Poésie',
+  'Théâtre',
+  'Essai',
+  'Biographie',
+  'Documentaire',
+  'Album',
+];
+
+/** Film proposé par une recherche par titre. */
+export interface FilmCandidate {
+  /** Identifiant IMDb : `tt1375666`. */
+  readonly id: string;
+  readonly title: string;
+  readonly year?: string | null;
+}
+
+export interface FilmSearchResult {
+  readonly films: readonly FilmCandidate[];
+  /** Vrai si la recherche n'a pas pu se faire : liste vide, mais pas « aucun film ». */
+  readonly unavailable: boolean;
+}
+
+export interface FilmDraftResult {
+  readonly draft: ScanDraft;
+  readonly source: string;
 }

@@ -18,6 +18,10 @@ SOLUTION="$ROOT/CatalogueMaison.slnx"
 API="$ROOT/services/Catalogue.Api"
 METADATA="$ROOT/services/Metadata.Api"
 
+# Relais HTTPS du frontend, pour l'essayer depuis un téléphone (front-lan).
+LAN_PORT=4443
+LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
+
 usage() {
   cat <<'USAGE'
 Usage: tools/dev.sh <commande>
@@ -39,6 +43,8 @@ Usage: tools/dev.sh <commande>
   metadata-migrate          Applique les migrations à la base metadata
   front           Compile le frontend et lance ses tests
   front-start     Démarre le frontend en développement
+  front-lan       Démarre le frontend en HTTPS sur le réseau local, pour un
+                  téléphone (caméra comprise) — relancer « api » ensuite
   front-install   Installe les dépendances du frontend
   versions        Affiche les versions des outils installés
 
@@ -109,7 +115,16 @@ case "${1:-}" in
     # conteneur. Keycloak tourne en start-dev, sur une base en mémoire.
     run $COMPOSE rm -sf keycloak && run $COMPOSE up -d keycloak
     ;;
-  api)           run dotnet run --project "$API" ;;
+  api)
+    # Un jeton obtenu à travers le relais HTTPS porte l'origine vue par le
+    # téléphone comme issuer. On l'ajoute aux issuers acceptés, par
+    # l'environnement : l'adresse de ce poste n'a rien à faire dans le dépôt.
+    if [ -n "$LAN_IP" ]; then
+      export Keycloak__AdditionalIssuers__0="https://$LAN_IP:$LAN_PORT/realms/maison"
+      echo "--- issuer accepté en plus : $Keycloak__AdditionalIssuers__0" | tee -a "$LOG"
+    fi
+    run dotnet run --project "$API"
+    ;;
   metadata)      run dotnet run --project "$METADATA" ;;
   metadata-migration)
     [ -n "${2:-}" ] || { echo "Nom de migration manquant." | tee -a "$LOG"; exit 2; }
@@ -126,6 +141,11 @@ case "${1:-}" in
     # depuis un terminal, il serait suspendu par SIGTTIN et resterait à
     # l'écoute sans jamais répondre. On lui coupe donc l'entrée standard.
     run bash -c "cd '$ROOT/frontend' && npm start < /dev/null"
+    ;;
+  front-lan)
+    [ -n "$LAN_IP" ] || { echo "Adresse du Mac sur le réseau local introuvable." | tee -a "$LOG"; exit 2; }
+    echo "--- Depuis le téléphone : https://$LAN_IP:$LAN_PORT (certificat auto-signé, à accepter)" | tee -a "$LOG"
+    run bash -c "cd '$ROOT/frontend' && npx ng serve --configuration lan < /dev/null"
     ;;
   front-build)   run bash -c "cd '$ROOT/frontend' && npm run build" ;;
   front-test)    run bash -c "cd '$ROOT/frontend' && npm run test -- --watch=false" ;;

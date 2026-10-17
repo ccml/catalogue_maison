@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { emptySpecifics, mediaTypeLabels, mediaTypes, type MediaType } from './media.models';
+import {
+  addTitles,
+  emptySpecifics,
+  mediaTypeFromSlug,
+  mediaTypeLabels,
+  mediaTypeSlugs,
+  mediaTypes,
+  type MediaType,
+} from './media.models';
 
 describe('types de média', () => {
   it('expose tous les types connus, sans doublon', () => {
@@ -21,6 +29,23 @@ describe('types de média', () => {
   it('sait amorcer des spécificités vides pour chaque type', () => {
     for (const type of mediaTypes) {
       expect(emptySpecifics(type).type).toBeTruthy();
+    }
+  });
+});
+
+describe('adresse de l’écran d’ajout', () => {
+  it('chaque type a sa propre adresse, et elle ramène à lui', () => {
+    for (const type of mediaTypes) {
+      expect(mediaTypeFromSlug(mediaTypeSlugs[type])).toBe(type);
+      expect(addTitles[type]).toMatch(/^Ajouter /);
+    }
+
+    expect(new Set(Object.values(mediaTypeSlugs)).size).toBe(mediaTypes.length);
+  });
+
+  it('une adresse inconnue ne désigne aucun type', () => {
+    for (const slug of ['', 'Book', 'livres', 'cd', null, undefined]) {
+      expect(mediaTypeFromSlug(slug)).toBeNull();
     }
   });
 });

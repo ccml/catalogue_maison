@@ -113,6 +113,7 @@ public sealed class CatalogueApiFixture : WebApplicationFactory<Program>, IAsync
         builder.UseSetting("ConnectionStrings:Catalogue", _postgres.GetConnectionString());
         builder.UseSetting("Keycloak:Authority", TestTokens.Issuer);
         builder.UseSetting("Keycloak:Audience", TestTokens.Audience);
+        builder.UseSetting("Keycloak:AdditionalIssuers:0", TestTokens.RelayedIssuer);
         builder.UseSetting("Keycloak:RequireHttpsMetadata", "false");
 
         builder.ConfigureTestServices(services =>
@@ -170,4 +171,18 @@ public sealed class FakeMetadataLookup : IMetadataLookup
         _requested.Enqueue(code);
         return Task.FromResult(Answer(code));
     }
+
+    public bool FilmSearchEnabled { get; set; } = true;
+
+    public Func<string, FilmSearch> FilmSearchAnswer { get; set; } = _ => new FilmSearch(MetadataLookupOutcome.Found, []);
+
+    public Func<string, MetadataLookup> FilmAnswer { get; set; } = _ => MetadataLookup.NotFound;
+
+    public Task<bool> FilmSearchEnabledAsync(CancellationToken cancellationToken) => Task.FromResult(FilmSearchEnabled);
+
+    public Task<FilmSearch> SearchFilmsAsync(string title, CancellationToken cancellationToken) =>
+        Task.FromResult(FilmSearchAnswer(title));
+
+    public Task<MetadataLookup> GetFilmAsync(string imdbId, CancellationToken cancellationToken) =>
+        Task.FromResult(FilmAnswer(imdbId));
 }

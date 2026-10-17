@@ -19,6 +19,12 @@ public static class TestTokens
     public const string Issuer = "https://tests.cataloguemaison.local/realms/maison";
     public const string Audience = "catalogue-api";
 
+    /// <summary>
+    /// Le même realm, joint à travers le relais HTTPS du frontend : déclaré
+    /// à l'API comme issuer supplémentaire par le fixture.
+    /// </summary>
+    public const string RelayedIssuer = "https://relais.tests.cataloguemaison.local:4443/realms/maison";
+
     private static readonly RsaSecurityKey Key = new(RSA.Create(2048)) { KeyId = "tests" };
 
     public static SecurityKey SigningKey => Key;
@@ -55,13 +61,23 @@ public static class TestTokens
             ["realm_access"] = new Dictionary<string, object> { ["roles"] = roles }
         });
 
-    private static string Create(Dictionary<string, object> claims)
+    /// <summary>Jeton d'un membre de ménage, émis sous un issuer donné.</summary>
+    public static string ForHouseholdWithIssuer(string issuer, string tenant, params string[] roles) =>
+        Create(new Dictionary<string, object>
+        {
+            ["sub"] = Guid.NewGuid().ToString(),
+            ["preferred_username"] = $"test-{tenant}",
+            ["tenant"] = tenant,
+            ["realm_access"] = new Dictionary<string, object> { ["roles"] = roles }
+        }, issuer);
+
+    private static string Create(Dictionary<string, object> claims, string issuer = Issuer)
     {
         var handler = new JsonWebTokenHandler();
 
         return handler.CreateToken(new SecurityTokenDescriptor
         {
-            Issuer = Issuer,
+            Issuer = issuer,
             Audience = Audience,
             IssuedAt = DateTime.UtcNow,
             NotBefore = DateTime.UtcNow.AddMinutes(-1),

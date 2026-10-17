@@ -30,6 +30,12 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_HEALTH_ENABLED: "true"
+      # Le relais HTTPS du frontend (tools/dev.sh front-lan) transmet
+      # l'origine vue par le téléphone dans les en-têtes X-Forwarded-*.
+      # Keycloak en tire ses URL, et donc l'issuer des jetons émis par ce
+      # chemin. Développement uniquement : en production, ces en-têtes ne
+      # sont acceptés que d'un reverse proxy de confiance.
+      KC_PROXY_HEADERS: xforwarded
     ports:
       - "8080:8080"
     volumes:

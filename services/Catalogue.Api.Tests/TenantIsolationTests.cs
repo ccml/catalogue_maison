@@ -126,6 +126,30 @@ public sealed class TenantIsolationTests(CatalogueApiFixture fixture) : IClassFi
     }
 
     [Fact]
+    public async Task Un_jeton_emis_a_travers_le_relais_declare_est_accepte()
+    {
+        var client = fixture.ClientWithToken(
+            TestTokens.ForHouseholdWithIssuer(TestTokens.RelayedIssuer, CatalogueApiFixture.HouseholdA, Roles.Adult));
+
+        var reponse = await client.GetAsync("/medias");
+
+        Assert.Equal(HttpStatusCode.OK, reponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Un_jeton_d_un_issuer_non_declare_est_rejete()
+    {
+        // Accepter l'issuer du relais n'ouvre pas la porte à n'importe quel
+        // issuer : la liste reste fermée, même signé par la bonne clé.
+        var client = fixture.ClientWithToken(TestTokens.ForHouseholdWithIssuer(
+            "https://ailleurs.example/realms/maison", CatalogueApiFixture.HouseholdA, Roles.Adult));
+
+        var reponse = await client.GetAsync("/medias");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, reponse.StatusCode);
+    }
+
+    [Fact]
     public async Task Le_health_check_reste_anonyme()
     {
         var client = fixture.CreateClient();

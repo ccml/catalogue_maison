@@ -41,7 +41,10 @@ public sealed class LookupService(
 
         var cached = await db.Lookups.FirstOrDefaultAsync(l => l.Code == code.Value, cancellationToken);
         if (cached is not null && cached.IsFresh(
-                now, TimeSpan.FromDays(settings.FoundTtlDays), TimeSpan.FromDays(settings.NotFoundTtlDays)))
+                now,
+                TimeSpan.FromDays(settings.FoundTtlDays),
+                TimeSpan.FromDays(settings.NotFoundTtlDays),
+                TimeSpan.FromDays(settings.ProvisionalTtlDays)))
         {
             return Result(cached.Record);
         }

@@ -11,15 +11,21 @@ const vide: SpecificsFields = {
   isbn: '',
   publisher: '',
   pages: null,
+  collection: '',
+  collectionNumber: '',
+  genre: '',
+  edition: '',
   series: '',
   volume: null,
   illustrator: '',
   label: '',
   format: '',
   tracks: '',
+  barcode: '',
   studio: '',
   durationMinutes: null,
   support: '',
+  actors: '',
   platform: '',
   minPlayers: null,
   maxPlayers: null,
@@ -40,6 +46,8 @@ describe('buildSpecifics', () => {
       studio: 'Legendary',
       durationMinutes: null,
       support: null,
+      genre: null,
+      actors: [],
     });
   });
 
@@ -52,31 +60,63 @@ describe('buildSpecifics', () => {
   it('élague les espaces autour des valeurs', () => {
     const specificites = buildSpecifics('Book', { ...vide, publisher: '  Gallimard  ' });
 
-    expect(specificites).toEqual({ type: 'book', isbn: null, publisher: 'Gallimard', pages: null });
+    expect(specificites).toEqual({
+      type: 'book',
+      isbn: null,
+      publisher: 'Gallimard',
+      pages: null,
+      series: null, volume: null, collection: null, collectionNumber: null, genre: null,
+    });
   });
 
   it('ne confond pas un livre et une BD', () => {
-    // Les deux types partagent l'ISBN et l'éditeur : seul le discriminant
-    // les sépare, et une série saisie pour une BD ne doit pas se retrouver
-    // dans les spécificités d'un livre.
-    const livre = buildSpecifics('Book', { ...vide, isbn: '9782070408278', series: 'Blacksad' });
-    expect(livre).toEqual({ type: 'book', isbn: '9782070408278', publisher: null, pages: null });
-
-    const bd = buildSpecifics('ComicBook', {
+    // Série, tome et collection sont communs aux deux : un album pris pour
+    // un livre les garde en changeant de type. Mais ce qui n'appartient qu'à
+    // l'un — le dessinateur et l'édition d'une BD, le genre d'un livre — ne
+    // doit pas passer à l'autre.
+    const champs: SpecificsFields = {
       ...vide,
+      isbn: '9782070408278',
       series: 'Blacksad',
       volume: 1,
       illustrator: 'Juanjo Guarnido',
-      pages: 48,
+      collection: 'Folio',
+      collectionNumber: '85',
+      genre: 'Policier',
+      edition: 'Éd. de luxe',
+    };
+
+    expect(buildSpecifics('Book', champs)).toEqual({
+      type: 'book',
+      isbn: '9782070408278',
+      publisher: null,
+      pages: null,
+      series: 'Blacksad',
+      volume: 1,
+      collection: 'Folio',
+      collectionNumber: '85',
+      genre: 'Policier',
     });
-    expect(bd).toEqual({
+
+    expect(buildSpecifics('ComicBook', champs)).toEqual({
       type: 'comic',
       series: 'Blacksad',
       volume: 1,
       illustrator: 'Juanjo Guarnido',
       publisher: null,
-      isbn: null,
+      isbn: '9782070408278',
+      collection: 'Folio',
+      collectionNumber: '85',
+      edition: 'Éd. de luxe',
     });
+  });
+
+  it('une mention d’édition seule suffit à écrire les spécificités d’une BD', () => {
+    expect(buildSpecifics('ComicBook', { ...vide, edition: 'Intégrale' })?.type).toBe('comic');
+  });
+
+  it('une collection seule suffit à écrire les spécificités d’un livre', () => {
+    expect(buildSpecifics('Book', { ...vide, collection: 'Pléiade' })?.type).toBe('book');
   });
 
   it('porte le discriminant attendu par l’API pour chaque type', () => {
@@ -108,7 +148,20 @@ describe('specificsToFields', () => {
    * première modification. L'aller-retour le prouve type par type.
    */
   const cas: readonly { readonly type: MediaType; readonly specifics: MediaSpecifics }[] = [
-    { type: 'Book', specifics: { type: 'book', isbn: '9782070408278', publisher: 'Gallimard', pages: 347 } },
+    {
+      type: 'Book',
+      specifics: {
+        type: 'book',
+        isbn: '9782070541300',
+        publisher: 'Gallimard',
+        pages: 349,
+        series: 'Harry Potter',
+        volume: 3,
+        collection: 'Folio junior',
+        collectionNumber: '1006',
+        genre: 'Roman',
+      },
+    },
     {
       type: 'ComicBook',
       specifics: {
@@ -118,6 +171,9 @@ describe('specificsToFields', () => {
         illustrator: 'Juanjo Guarnido',
         publisher: 'Dargaud',
         isbn: '9782205049666',
+        collection: 'Aire libre',
+        collectionNumber: '12',
+        edition: 'Éd. de luxe',
       },
     },
     {
@@ -127,9 +183,20 @@ describe('specificsToFields', () => {
         label: 'Columbia',
         format: 'Vinyle',
         tracks: ['So What', 'Freddie Freeloader'],
+        barcode: '5099702798320',
       },
     },
-    { type: 'Film', specifics: { type: 'film', studio: 'Mosfilm', durationMinutes: 161, support: 'DVD' } },
+    {
+      type: 'Film',
+      specifics: {
+        type: 'film',
+        studio: 'Mosfilm',
+        durationMinutes: 161,
+        support: 'DVD',
+        genre: 'Drama, Sci-Fi',
+        actors: ['Natalya Bondarchuk', 'Donatas Banionis'],
+      },
+    },
     { type: 'Game', specifics: { type: 'game', platform: 'Plateau', minPlayers: 2, maxPlayers: 5 } },
   ];
 
@@ -150,6 +217,26 @@ describe('specificsToFields', () => {
       label: 'ECM',
       format: null,
       tracks: ['Rubato', 'Coda'],
+      barcode: null,
+    });
+  });
+
+  it('ne perd pas le code-barres d’un disque lors d’une correction', () => {
+    // Le perdre ferait passer le disque pour absent au prochain scan, et
+    // l'utilisateur l'ajouterait une seconde fois.
+    const champs = specificsToFields({ type: 'music', barcode: '0724384260958' });
+
+    expect(champs.barcode).toBe('0724384260958');
+    expect(buildSpecifics('Music', champs)).toMatchObject({ barcode: '0724384260958' });
+  });
+
+  it('un code-barres seul suffit à écrire les spécificités d’un disque', () => {
+    expect(buildSpecifics('Music', { ...vide, barcode: '0724384260958' })).toEqual({
+      type: 'music',
+      label: null,
+      format: null,
+      tracks: [],
+      barcode: '0724384260958',
     });
   });
 
