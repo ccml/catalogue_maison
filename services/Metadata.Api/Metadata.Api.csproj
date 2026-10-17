@@ -7,6 +7,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>Metadata.Api</RootNamespace>
     <AssemblyName>Metadata.Api</AssemblyName>
+    <Version>1.0.0</Version>
     <InvariantGlobalization>false</InvariantGlobalization>
     <!-- Clé OMDb en développement : dotnet user-secrets, hors du dépôt. -->
     <UserSecretsId>cataloguemaison-metadata-api</UserSecretsId>
