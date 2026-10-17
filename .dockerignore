@@ -1,0 +1,16 @@
+# Contexte de construction des images (tools/dev.sh images) : le dépôt
+# entier, moins ce qui est produit localement ou propre au poste.
+.git
+**/bin
+**/obj
+**/node_modules
+frontend/dist
+frontend/.angular
+tools/logs
+deployment
+.vscode
+.idea
+**/.DS_Store
+**/*.local.json
+.env
+.env.*

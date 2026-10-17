@@ -27,3 +27,7 @@ appsettings.Development.local.json
 .env
 .env.*
 !.env.example
+
+# Fichiers propres au serveur de déploiement (compose, .env, données) :
+# jamais versionnés.
+/deployment/

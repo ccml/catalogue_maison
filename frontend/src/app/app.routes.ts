@@ -1,7 +1,15 @@
 import { inject } from '@angular/core';
-import type { Routes } from '@angular/router';
+import { Router, type CanActivateFn, type Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { AuthService } from './core/auth/auth.service';
+
+/**
+ * L'opérateur n'a pas de catalogue : on l'envoie vers les ménages. Utile
+ * surtout après la connexion, dont la destination a été choisie avant de
+ * savoir qui se connectait. Simple aiguillage, l'API tranche les droits.
+ */
+const operatorToHouseholds: CanActivateFn = () =>
+  inject(AuthService).mayAdministerPlatform() ? inject(Router).createUrlTree(['/menages']) : true;
 
 export const routes: Routes = [
   {
@@ -14,7 +22,7 @@ export const routes: Routes = [
   {
     path: 'catalogue',
     title: 'Catalogue',
-    canActivate: [authGuard],
+    canActivate: [authGuard, operatorToHouseholds],
     loadComponent: () => import('./features/catalogue/media-list').then((m) => m.MediaList),
   },
   {

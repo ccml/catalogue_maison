@@ -52,6 +52,9 @@ Usage: tools/dev.sh <commande>
                   téléphone (caméra comprise) — relancer « api » ensuite
   front-install   Installe les dépendances du frontend
   versions        Affiche les versions des outils installés
+  images <version>  Construit et publie (--push) les images de déploiement,
+                  pour linux/amd64 et linux/arm64 ; NAMESPACE (compte
+                  Docker Hub) requis. CHECK=1 construit sans rien publier.
 
 La sortie de chaque commande est tracée dans tools/logs/<commande>.log.
 USAGE
@@ -176,6 +179,38 @@ case "${1:-}" in
   front)
     run bash -c "cd '$ROOT/frontend' && npm run build" \
       && run bash -c "cd '$ROOT/frontend' && npm run test -- --watch=false"
+    ;;
+  images)
+    # Images de production <NAMESPACE>/cataloguemaison-*:<version> :
+    # multi-plateforme, poussées sur Docker Hub par
+    # buildx (docker login préalable). Une image multi-plateforme ne se
+    # charge pas dans le Docker local : avec CHECK=1, la construction est
+    # seulement vérifiée, rien n'est publié.
+    [ -n "${2:-}" ] || { echo "Version manquante, par ex. : tools/dev.sh images 1.0.0" | tee -a "$LOG"; exit 2; }
+    VERSION="$2"
+    PLATFORMS="linux/amd64,linux/arm64"
+    [ -n "${NAMESPACE:-}" ] || { echo "NAMESPACE manquant (compte Docker Hub), par ex. : NAMESPACE=moncompte tools/dev.sh images 1.0.0" | tee -a "$LOG"; exit 2; }
+    if [ "${CHECK:-0}" = "1" ]; then OUTPUT=(); else OUTPUT=(--push); fi
+    status=0
+    for image in \
+      "cataloguemaison frontend.Dockerfile" \
+      "cataloguemaison-keycloak keycloak.Dockerfile" \
+      "cataloguemaison-migrations migrations.Dockerfile" \
+      "cataloguemaison-catalogue-api service.Dockerfile --build-arg PROJECT=Catalogue.Api" \
+      "cataloguemaison-metadata-api service.Dockerfile --build-arg PROJECT=Metadata.Api" \
+      "cataloguemaison-tenants-api service.Dockerfile --build-arg PROJECT=Tenants.Api"; do
+      set -- $image
+      name="$1" file="$2"; shift 2
+      # ${OUTPUT[@]+…} : bash 3.2 (celui de macOS) tient un tableau vide
+      # pour non défini sous `set -u`.
+      run docker buildx build ${OUTPUT[@]+"${OUTPUT[@]}"} --platform "$PLATFORMS" \
+        -f "$ROOT/docker/images/$file" --tag "$NAMESPACE/$name:$VERSION" "$@" "$ROOT" || { status=1; break; }
+    done
+    if [ "$status" -eq 0 ]; then
+      if [ "${#OUTPUT[@]}" -eq 0 ]; then verdict="construites (non publiées)"; else verdict="publiées"; fi
+      echo "--- images $NAMESPACE/cataloguemaison-*:$VERSION $verdict pour $PLATFORMS." | tee -a "$LOG"
+    fi
+    exit "$status"
     ;;
   versions)
     run dotnet --version

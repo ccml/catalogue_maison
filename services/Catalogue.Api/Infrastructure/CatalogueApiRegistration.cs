@@ -46,6 +46,13 @@ public static class CatalogueApiRegistration
             .AddJwtBearer(options =>
             {
                 options.Authority = keycloak.Authority;
+                if (!string.IsNullOrWhiteSpace(keycloak.InternalAuthority))
+                {
+                    // Découverte et clés par le réseau interne ; l'issuer
+                    // attendu, plus bas, reste l'URL publique.
+                    options.MetadataAddress =
+                        $"{keycloak.InternalAuthority.TrimEnd('/')}/.well-known/openid-configuration";
+                }
                 options.Audience = keycloak.Audience;
                 options.RequireHttpsMetadata = keycloak.RequireHttpsMetadata;
                 options.MapInboundClaims = false;

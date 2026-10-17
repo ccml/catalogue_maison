@@ -431,7 +431,31 @@ dotnet test
 
 # Frontend
 cd frontend && npm start
+
+# Images de déploiement, amd64 + arm64, poussées sur Docker Hub
+# (CHECK=1 : construire sans pousser)
+NAMESPACE=<compte> tools/dev.sh images 1.0.0
 ```
+
+## Déploiement
+
+Sur un serveur Docker Compose, derrière un reverse proxy qui termine le
+TLS, sur un sous-domaine dédié. Les fichiers propres au serveur
+(`compose.yml`, `.env`) ne sont pas versionnés : `/deployment` est ignoré
+par git.
+Images dans `/docker/images`, construites par `tools/dev.sh images`.
+
+- Seul le conteneur frontend (nginx) est exposé au proxy ; il relaie les API
+  et Keycloak sous la même origine. Metadata.Api, la base et la console
+  d'administration de Keycloak ne sont jamais exposées.
+- Les services joignent Keycloak par le réseau interne
+  (`Keycloak:InternalAuthority`) ; l'issuer validé reste l'URL publique.
+- Le realm de production est **dérivé** du realm versionné par
+  `tools/realm-prod.py` à la construction de l'image Keycloak : opérateur
+  seul, aucun ménage, secrets lus dans l'environnement. Ne pas maintenir un
+  second export à la main.
+- Les migrations passent par un conteneur éphémère, avant les API, sur
+  toutes les bases et tous les schémas de ménage.
 
 ## À demander avant de décider seul
 

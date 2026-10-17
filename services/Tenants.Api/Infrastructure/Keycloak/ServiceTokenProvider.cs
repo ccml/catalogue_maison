@@ -47,7 +47,7 @@ public sealed class ServiceTokenProvider(
                 throw new IdentityDirectoryException("« KeycloakAdmin:ClientSecret » n'est pas configuré.");
             }
 
-            var endpoint = $"{keycloak.Value.Authority.TrimEnd('/')}/protocol/openid-connect/token";
+            var endpoint = $"{keycloak.Value.BackchannelAuthority.TrimEnd('/')}/protocol/openid-connect/token";
             using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
             {
                 Content = new FormUrlEncodedContent(new Dictionary<string, string>

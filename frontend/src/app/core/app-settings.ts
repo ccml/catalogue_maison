@@ -1,4 +1,4 @@
-import { InjectionToken } from '@angular/core';
+import { InjectionToken, isDevMode } from '@angular/core';
 
 /**
  * Réglages de l'environnement. Fournis par injection pour qu'un test puisse
@@ -27,9 +27,10 @@ const developmentSettings: AppSettings = {
 };
 
 /**
- * Réglages quand l'application est servie par le relais HTTPS du serveur de
- * développement (`tools/dev.sh front-lan`), pour l'essayer depuis un
- * téléphone du réseau local.
+ * Réglages quand l'application est servie avec ses API et Keycloak derrière
+ * un même reverse proxy : en production (le nginx du conteneur frontend), et
+ * en développement par le relais HTTPS (`tools/dev.sh front-lan`), pour
+ * l'essayer depuis un téléphone du réseau local.
  *
  * Les API et Keycloak sont alors joints **par la même origine** que la page,
  * sous `/api`, `/tenants-api` et `/realms` : un téléphone ne peut pas joindre le `localhost`
@@ -49,10 +50,11 @@ export function relayedSettings(origin: string): AppSettings {
 
 export const APP_SETTINGS = new InjectionToken<AppSettings>('AppSettings', {
   providedIn: 'root',
-  // Seul le relais sert l'application en HTTPS en développement : c'est ce
-  // qui le désigne. Le serveur ordinaire, lui, reste en HTTP sur localhost.
+  // Une version de production est toujours servie derrière son proxy. En
+  // développement, seul le relais sert l'application en HTTPS : c'est ce qui
+  // le désigne ; le serveur ordinaire, lui, reste en HTTP sur localhost.
   factory: () =>
-    window.location.protocol === 'https:'
+    !isDevMode() || window.location.protocol === 'https:'
       ? relayedSettings(window.location.origin)
       : developmentSettings,
 });

@@ -15,10 +15,29 @@ public sealed class KeycloakOptions
     public string Audience { get; init; } = string.Empty;
 
     /// <summary>
-    /// Faux uniquement pour le Keycloak local en HTTP. N'autorise jamais
-    /// autre chose que du HTTPS ailleurs.
+    /// Faux uniquement pour un Keycloak joint en HTTP : le Keycloak local, ou
+    /// l'adresse interne <see cref="InternalAuthority"/> d'un déploiement,
+    /// sur le réseau privé des conteneurs. N'autorise jamais autre chose que
+    /// du HTTPS ailleurs.
     /// </summary>
     public bool RequireHttpsMetadata { get; init; } = true;
+
+    /// <summary>
+    /// Adresse du <strong>même realm</strong> sur le réseau interne d'un
+    /// déploiement, par ex. <c>http://cataloguemaison-keycloak:8080/realms/maison</c>.
+    /// <para>
+    /// Le service y lit la découverte et les clés de signature, et y demande
+    /// ses jetons de service, sans repasser par Internet et le proxy TLS.
+    /// L'issuer attendu reste <see cref="Authority"/> : Keycloak, configuré
+    /// avec son nom d'hôte public, émet ce même issuer quel que soit le
+    /// chemin par lequel on l'appelle. Vide en développement.
+    /// </para>
+    /// </summary>
+    public string? InternalAuthority { get; init; }
+
+    /// <summary>Base des appels de ce service à Keycloak : l'adresse interne si elle est configurée.</summary>
+    public string BackchannelAuthority =>
+        string.IsNullOrWhiteSpace(InternalAuthority) ? Authority : InternalAuthority;
 
     /// <summary>
     /// Autres URL sous lesquelles <strong>le même realm</strong> peut être
