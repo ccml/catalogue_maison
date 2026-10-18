@@ -52,9 +52,13 @@ Usage: tools/dev.sh <commande>
                   téléphone (caméra comprise) — relancer « api » ensuite
   front-install   Installe les dépendances du frontend
   versions        Affiche les versions des outils installés
-  images <version>  Construit et publie (--push) les images de déploiement,
-                  pour linux/amd64 et linux/arm64 ; NAMESPACE (compte
-                  Docker Hub) requis. CHECK=1 construit sans rien publier.
+  images <version> [composante…]
+                  Construit et publie (--push) les images de déploiement,
+                  pour linux/amd64 et linux/arm64 : toutes, ou seulement
+                  frontend, keycloak, migrations, catalogue-api,
+                  metadata-api, tenants-api. NAMESPACE (compte Docker Hub)
+                  requis ;
+                  CHECK=1 construit sans rien publier.
 
 La sortie de chaque commande est tracée dans tools/logs/<commande>.log.
 USAGE
@@ -186,29 +190,54 @@ case "${1:-}" in
     # buildx (docker login préalable). Une image multi-plateforme ne se
     # charge pas dans le Docker local : avec CHECK=1, la construction est
     # seulement vérifiée, rien n'est publié.
-    [ -n "${2:-}" ] || { echo "Version manquante, par ex. : tools/dev.sh images 1.0.0" | tee -a "$LOG"; exit 2; }
+    #
+    #   tools/dev.sh images 1.0.1                  les six images
+    #   tools/dev.sh images 1.0.1 metadata-api     une seule
+    #   tools/dev.sh images 1.0.1 frontend keycloak
+    [ -n "${2:-}" ] || { echo "Version manquante, par ex. : tools/dev.sh images 1.0.0 [composante…]" | tee -a "$LOG"; exit 2; }
     VERSION="$2"
+    shift 2
     PLATFORMS="linux/amd64,linux/arm64"
     [ -n "${NAMESPACE:-}" ] || { echo "NAMESPACE manquant (compte Docker Hub), par ex. : NAMESPACE=moncompte tools/dev.sh images 1.0.0" | tee -a "$LOG"; exit 2; }
     if [ "${CHECK:-0}" = "1" ]; then OUTPUT=(); else OUTPUT=(--push); fi
+
+    # composante  image  Dockerfile  [arguments de construction]
+    CATALOGUE_IMAGES=(
+      "frontend cataloguemaison frontend.Dockerfile"
+      "keycloak cataloguemaison-keycloak keycloak.Dockerfile"
+      "migrations cataloguemaison-migrations migrations.Dockerfile"
+      "catalogue-api cataloguemaison-catalogue-api service.Dockerfile --build-arg PROJECT=Catalogue.Api"
+      "metadata-api cataloguemaison-metadata-api service.Dockerfile --build-arg PROJECT=Metadata.Api"
+      "tenants-api cataloguemaison-tenants-api service.Dockerfile --build-arg PROJECT=Tenants.Api"
+    )
+    KNOWN=""
+    for spec in "${CATALOGUE_IMAGES[@]}"; do KNOWN="$KNOWN ${spec%% *}"; done
+
+    # Sans composante : toutes. Une composante inconnue arrête tout, avant
+    # la moindre construction.
+    WANTED="${*:-$KNOWN}"
+    for component in $WANTED; do
+      case " $KNOWN " in
+        *" $component "*) : ;;
+        *) echo "Composante inconnue : « $component ». Connues :$KNOWN" | tee -a "$LOG"; exit 2 ;;
+      esac
+    done
+
     status=0
-    for image in \
-      "cataloguemaison frontend.Dockerfile" \
-      "cataloguemaison-keycloak keycloak.Dockerfile" \
-      "cataloguemaison-migrations migrations.Dockerfile" \
-      "cataloguemaison-catalogue-api service.Dockerfile --build-arg PROJECT=Catalogue.Api" \
-      "cataloguemaison-metadata-api service.Dockerfile --build-arg PROJECT=Metadata.Api" \
-      "cataloguemaison-tenants-api service.Dockerfile --build-arg PROJECT=Tenants.Api"; do
-      set -- $image
-      name="$1" file="$2"; shift 2
+    built=""
+    for spec in "${CATALOGUE_IMAGES[@]}"; do
+      set -- $spec
+      component="$1" name="$2" file="$3"; shift 3
+      case " $WANTED " in *" $component "*) : ;; *) continue ;; esac
       # ${OUTPUT[@]+…} : bash 3.2 (celui de macOS) tient un tableau vide
       # pour non défini sous `set -u`.
       run docker buildx build ${OUTPUT[@]+"${OUTPUT[@]}"} --platform "$PLATFORMS" \
         -f "$ROOT/docker/images/$file" --tag "$NAMESPACE/$name:$VERSION" "$@" "$ROOT" || { status=1; break; }
+      built="$built $name"
     done
     if [ "$status" -eq 0 ]; then
       if [ "${#OUTPUT[@]}" -eq 0 ]; then verdict="construites (non publiées)"; else verdict="publiées"; fi
-      echo "--- images $NAMESPACE/cataloguemaison-*:$VERSION $verdict pour $PLATFORMS." | tee -a "$LOG"
+      echo "--- $verdict en $VERSION pour $PLATFORMS :$built" | tee -a "$LOG"
     fi
     exit "$status"
     ;;

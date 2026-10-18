@@ -27,7 +27,15 @@ public static class MetadataApiRegistration
         }
 
         services.Configure<KeycloakOptions>(configuration.GetSection(KeycloakOptions.Section));
-        services.Configure<EnrichmentOptions>(configuration.GetSection(EnrichmentOptions.Section));
+        // Validée au démarrage : une valeur mal formée empêche le service de
+        // démarrer, avec un message, au lieu d'échouer à chaque scan.
+        services.AddOptions<EnrichmentOptions>()
+            .Bind(configuration.GetSection(EnrichmentOptions.Section))
+            .Validate(
+                options => EnrichmentOptions.IsValidUserAgent(options.MusicBrainzUserAgent),
+                "« Enrichment:MusicBrainzUserAgent » doit avoir la forme « Application/version (contact) », "
+                + "par ex. « CatalogueMaison/1.0 (admin@exemple.be) ».")
+            .ValidateOnStart();
 
         services.ConfigureHttpJsonOptions(options =>
         {

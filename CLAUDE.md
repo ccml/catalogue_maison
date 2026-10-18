@@ -432,9 +432,10 @@ dotnet test
 # Frontend
 cd frontend && npm start
 
-# Images de déploiement, amd64 + arm64, poussées sur Docker Hub
-# (CHECK=1 : construire sans pousser)
+# Images de déploiement, amd64 + arm64, poussées sur Docker Hub : toutes, ou
+# seulement celles nommées (CHECK=1 : construire sans pousser)
 NAMESPACE=<compte> tools/dev.sh images 1.0.0
+NAMESPACE=<compte> tools/dev.sh images 1.0.1 metadata-api
 ```
 
 ## Déploiement

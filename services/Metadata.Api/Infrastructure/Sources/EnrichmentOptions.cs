@@ -24,6 +24,24 @@ public sealed class EnrichmentOptions
     /// </summary>
     public string MusicBrainzUserAgent { get; init; } = "CatalogueMaison/0.1 (developpement local)";
 
+    /// <summary>
+    /// Vrai si la valeur est un en-tête User-Agent HTTP valide qui nomme un
+    /// produit : <c>Application/version (contact)</c>. Une adresse seule ne
+    /// l'est pas — l'« @ » n'est permis que dans le commentaire entre
+    /// parenthèses.
+    /// </summary>
+    public static bool IsValidUserAgent(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        using var request = new HttpRequestMessage();
+        return request.Headers.UserAgent.TryParseAdd(value)
+            && request.Headers.UserAgent.Any(token => token.Product is not null);
+    }
+
     /// <summary>OMDb, pour la recherche de films par leur titre.</summary>
     public Uri OmdbBaseUrl { get; init; } = new("https://www.omdbapi.com/");
 
