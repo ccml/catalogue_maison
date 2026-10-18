@@ -251,7 +251,22 @@
         </div>
         <div class="field">
           <label for="pistes">Pistes, une par ligne</label>
-          <textarea id="pistes" rows="4" formControlName="tracks"></textarea>
+          <!-- Les numéros sont une colonne à part, alignée ligne à ligne : le
+               champ grandit avec la liste et ne replie pas les lignes, pour
+               qu'un titre long ne décale pas les numéros suivants. -->
+          <div class="tracks">
+            <ol class="track-numbers" aria-hidden="true">
+              @for (numero of trackNumbers(); track $index) {
+                <li>{{ numero }}</li>
+              }
+            </ol>
+            <textarea
+              id="pistes"
+              wrap="off"
+              [rows]="trackNumbers().length < 4 ? 4 : trackNumbers().length"
+              formControlName="tracks"
+            ></textarea>
+          </div>
         </div>
       }
       @case ('Film') {

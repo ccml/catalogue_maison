@@ -22,7 +22,13 @@ import {
 } from '../../core/api/media.models';
 import { Icon } from '../../shared/icon';
 import { BarcodeScanner } from './barcode-scanner';
-import { buildSpecifics, parseNumber, specificsToFields, text } from './media-form.specifics';
+import {
+  buildSpecifics,
+  lineNumbers,
+  parseNumber,
+  specificsToFields,
+  text,
+} from './media-form.specifics';
 import {
   draftType,
   filmDraftNotice,
@@ -93,6 +99,8 @@ export class MediaForm implements OnInit {
   /** Titre du dernier média ajouté par « Enregistrer et ajouter un autre ». */
   protected readonly dernierAjout = signal<string | null>(null);
   protected readonly currentType = signal<MediaType>('Book');
+  /** Numéro affiché devant chaque ligne du champ des pistes. */
+  protected readonly trackNumbers = signal<readonly (number | null)[]>([null]);
 
   protected readonly camera = signal(false);
   protected readonly searching = signal(false);
@@ -158,6 +166,9 @@ export class MediaForm implements OnInit {
     this.form.controls.type.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe((type) => this.currentType.set(type));
+    this.form.controls.tracks.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe((tracks) => this.trackNumbers.set(lineNumbers(tracks)));
   }
 
   async ngOnInit(): Promise<void> {

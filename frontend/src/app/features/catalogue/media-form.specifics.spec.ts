@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildSpecifics,
+  lineNumbers,
+  parseLines,
   parseNumber,
   specificsToFields,
   type SpecificsFields,
@@ -242,5 +244,22 @@ describe('specificsToFields', () => {
 
   it('rend des champs vides pour des spécificités absentes', () => {
     expect(buildSpecifics('Book', specificsToFields(null))).toBeNull();
+  });
+});
+
+describe('lineNumbers', () => {
+  it('numérote les pistes dans l’ordre de saisie', () => {
+    expect(lineNumbers('So What\nFreddie Freeloader\nBlue in Green')).toEqual([1, 2, 3]);
+  });
+
+  it('ne numérote pas les lignes vides, ignorées à l’enregistrement', () => {
+    // Le numéro affiché doit être celui de la piste enregistrée : une ligne
+    // vide au milieu ne décale pas la suite.
+    expect(lineNumbers('Rubato\n\n  \nCoda\n')).toEqual([1, null, null, 2, null]);
+    expect(parseLines('Rubato\n\n  \nCoda\n')).toEqual(['Rubato', 'Coda']);
+  });
+
+  it('rend une seule ligne sans numéro pour un champ vide', () => {
+    expect(lineNumbers('')).toEqual([null]);
   });
 });

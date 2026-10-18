@@ -102,6 +102,51 @@ textarea {
   font-family: var(--sans);
 }
 
+/* Pistes d'un album : numéro devant chaque ligne. La colonne et le champ
+   partagent hauteur de ligne et marge haute, c'est ce qui les aligne. */
+.tracks {
+  display: flex;
+  background: var(--paper-raised);
+  border: 1px solid var(--shelf);
+  border-radius: 2px;
+  line-height: 1.5;
+
+  &:focus-within {
+    outline: 2px solid var(--pine);
+    outline-offset: 2px;
+  }
+
+  textarea {
+    border: 0;
+    border-radius: 0;
+    padding-inline-start: 0.5rem;
+    line-height: inherit;
+    resize: none;
+    overflow-y: hidden;
+    overflow-x: auto;
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+}
+
+.track-numbers {
+  list-style: none;
+  margin: 0;
+  padding: 0.45rem 0.5rem 0.45rem 0.6rem;
+  border-inline-end: 1px solid var(--shelf);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  min-width: 2.6rem;
+  user-select: none;
+
+  li {
+    min-height: 1.5em;
+  }
+}
+
 /* La suppression est séparée du formulaire : ce n'est pas une variante de
    l'enregistrement, et elle ne se confirme qu'en deux gestes. */
 .suppression {

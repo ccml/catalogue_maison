@@ -143,6 +143,16 @@ export function parseLines(value: string): readonly string[] {
     .filter((line) => line.length > 0);
 }
 
+/**
+ * Numéro de piste de chaque ligne saisie, `null` pour une ligne vide : la
+ * numérotation suit celle que {@link parseLines} enregistrera, et non la
+ * position brute de la ligne.
+ */
+export function lineNumbers(value: string): readonly (number | null)[] {
+  let numero = 0;
+  return value.split('\n').map((line) => (line.trim().length > 0 ? ++numero : null));
+}
+
 const champsVides: SpecificsFields = {
   isbn: '',
   publisher: '',
