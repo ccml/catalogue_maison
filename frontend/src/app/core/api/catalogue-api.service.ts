@@ -38,6 +38,9 @@ export class CatalogueApi {
     if (query.lent !== null && query.lent !== undefined) {
       params = params.set('lent', String(query.lent));
     }
+    if (query.sort) {
+      params = params.set('sort', query.sort);
+    }
     if (query.page !== undefined) {
       params = params.set('page', String(query.page));
     }

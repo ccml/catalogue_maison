@@ -54,6 +54,13 @@ public class Media
     public string? Series { get; private set; }
 
     /// <summary>
+    /// Colonne générée depuis <c>specifics -&gt; 'volume'</c> : sans elle, les
+    /// albums d'une série ne se classeraient pas par tome. Jamais écrite
+    /// depuis le C#.
+    /// </summary>
+    public int? Volume { get; private set; }
+
+    /// <summary>
     /// Crée un média. Seuls le type et le titre sont requis : la saisie
     /// manuelle doit rester possible sans rien connaître d'autre.
     /// </summary>

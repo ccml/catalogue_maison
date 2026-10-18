@@ -32,6 +32,7 @@ public static class MediaEndpoints
         MediaType? type = null,
         string? q = null,
         bool? lent = null,
+        MediaSort sort = MediaSort.Recent,
         int page = 1,
         int size = 50)
     {
@@ -64,9 +65,7 @@ public static class MediaEndpoints
 
         var total = await query.CountAsync(cancellationToken);
 
-        var items = await query
-            .OrderByDescending(m => m.AddedAt)
-            .ThenBy(m => m.Id)
+        var items = await Sorted(query, sort)
             .Skip((page - 1) * size)
             .Take(size)
             .Select(m => new MediaSummaryResponse(
@@ -75,6 +74,34 @@ public static class MediaEndpoints
 
         return TypedResults.Ok(new PagedResponse<MediaSummaryResponse>(items, total, page, size));
     }
+
+    /// <summary>
+    /// Ordre de la liste. Chaque tri finit par l'identifiant : sans ordre
+    /// total, deux pages successives pourraient se chevaucher ou s'omettre.
+    /// Les fiches sans auteur ou sans série viennent après les autres, et
+    /// non en tête.
+    /// </summary>
+    private static IQueryable<Media> Sorted(IQueryable<Media> query, MediaSort sort) => sort switch
+    {
+        MediaSort.Title => query
+            .OrderBy(m => m.Title)
+            .ThenBy(m => m.Id),
+        MediaSort.Creator => query
+            .OrderBy(m => m.Creator == null)
+            .ThenBy(m => m.Creator)
+            .ThenBy(m => m.Title)
+            .ThenBy(m => m.Id),
+        MediaSort.Series => query
+            .OrderBy(m => m.Series == null)
+            .ThenBy(m => m.Series)
+            .ThenBy(m => m.Volume == null)
+            .ThenBy(m => m.Volume)
+            .ThenBy(m => m.Title)
+            .ThenBy(m => m.Id),
+        _ => query
+            .OrderByDescending(m => m.AddedAt)
+            .ThenBy(m => m.Id)
+    };
 
     private static async Task<Results<Ok<MediaDetailResponse>, NotFound>> GetAsync(
         Guid id,

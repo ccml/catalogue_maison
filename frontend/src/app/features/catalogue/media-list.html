@@ -9,7 +9,7 @@
 
   <div class="filters">
     <div class="search">
-      <label for="recherche">Titre, auteur ou série</label>
+      <label for="recherche"><app-icon name="search" />Titre, auteur ou série</label>
       <input
         id="recherche"
         #recherche
@@ -17,6 +17,15 @@
         autocomplete="off"
         (input)="search(recherche.value)"
       />
+    </div>
+
+    <div class="sort">
+      <label for="tri">Trier par</label>
+      <select id="tri" #tri [value]="sort()" (change)="sortBy(tri.value)">
+        @for (option of sorts; track option) {
+          <option [value]="option">{{ sortLabels[option] }}</option>
+        }
+      </select>
     </div>
 
     <div class="types" role="group" aria-label="Filtrer par type de média">
@@ -29,7 +38,7 @@
           [class.current]="type() === mediaType"
           (click)="filterByType(mediaType)"
         >
-          {{ labels[mediaType] }}
+          <app-icon [name]="icons[mediaType]" />{{ labels[mediaType] }}
         </button>
       }
     </div>
@@ -56,6 +65,7 @@
     <ol class="shelf">
       @for (media of items(); track media.id) {
         <li class="item" [attr.data-type]="media.type">
+          <app-icon class="type-icon" [name]="icons[media.type]" [label]="labels[media.type]" />
           <div class="item-main">
             @if (auth.mayWrite()) {
               <a class="work" [routerLink]="['/catalogue', media.id]">{{ media.title }}</a>
@@ -67,7 +77,7 @@
 
           <div class="item-aside">
             @if (media.isLent) {
-              <span class="lent">Prêté</span>
+              <span class="lent"><app-icon name="lent" />Prêté</span>
             } @else if (media.location) {
               <span class="where">{{ media.location }}</span>
             }
@@ -82,6 +92,24 @@
       }
     </ol>
 
-    <p class="count">{{ total() }} {{ total() === 1 ? 'média' : 'médias' }}</p>
+    <p class="count">
+      @if (remaining() > 0) {
+        {{ items().length }} sur {{ total() }} médias
+      } @else {
+        {{ total() }} {{ total() === 1 ? 'média' : 'médias' }}
+      }
+    </p>
+
+    @if (remaining() > 0) {
+      <button type="button" class="more" (click)="showMore()" [disabled]="loadingMore()">
+        @if (loadingMore()) {
+          Lecture…
+        } @else if (nextCount() === 1) {
+          Afficher le dernier
+        } @else {
+          Afficher les {{ nextCount() }} suivants
+        }
+      </button>
+    }
   }
 }

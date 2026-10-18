@@ -118,9 +118,22 @@ export interface MediaQuery {
   readonly type?: MediaType | null;
   readonly q?: string | null;
   readonly lent?: boolean | null;
+  readonly sort?: MediaSort | null;
   readonly page?: number;
   readonly size?: number;
 }
+
+/** Ordre de la liste. `Recent` : derniers ajoutés d'abord, l'ordre par défaut de l'API. */
+export type MediaSort = 'Recent' | 'Title' | 'Creator' | 'Series';
+
+export const mediaSorts: readonly MediaSort[] = ['Recent', 'Title', 'Creator', 'Series'];
+
+export const mediaSortLabels: Readonly<Record<MediaSort, string>> = {
+  Recent: 'Derniers ajouts',
+  Title: 'Titre',
+  Creator: 'Auteur, artiste',
+  Series: 'Série et tome',
+};
 
 /**
  * Les types, dans l'ordre d'affichage. **Source unique** : les déclarer dans

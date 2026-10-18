@@ -20,9 +20,11 @@ import {
   type ScanDraft,
   type ScanResult,
 } from '../../core/api/media.models';
+import { Icon } from '../../shared/icon';
 import { BarcodeScanner } from './barcode-scanner';
 import { buildSpecifics, parseNumber, specificsToFields, text } from './media-form.specifics';
 import {
+  draftType,
   filmDraftNotice,
   filmSearchNotice,
   isIsbn,
@@ -52,7 +54,7 @@ import {
  */
 @Component({
   selector: 'app-media-form',
-  imports: [ReactiveFormsModule, RouterLink, BarcodeScanner],
+  imports: [ReactiveFormsModule, RouterLink, BarcodeScanner, Icon],
   templateUrl: './media-form.html',
   styleUrl: './media-form.scss',
 })
@@ -88,6 +90,8 @@ export class MediaForm implements OnInit {
   protected readonly removing = signal(false);
   protected readonly suppressionDemandee = signal(false);
   protected readonly probleme = signal<string | null>(null);
+  /** Titre du dernier média ajouté par « Enregistrer et ajouter un autre ». */
+  protected readonly dernierAjout = signal<string | null>(null);
   protected readonly currentType = signal<MediaType>('Book');
 
   protected readonly camera = signal(false);
@@ -187,7 +191,12 @@ export class MediaForm implements OnInit {
     return this.form.controls.title;
   }
 
-  protected async submit(): Promise<void> {
+  /**
+   * Enregistre la fiche. `continuer` sert la saisie en série — une pile de
+   * BD, une étagère de disques : au lieu de revenir au catalogue, on repart
+   * d'une fiche vierge du même type.
+   */
+  protected async submit(continuer = false): Promise<void> {
     this.form.markAllAsTouched();
 
     if (this.form.invalid) {
@@ -202,12 +211,35 @@ export class MediaForm implements OnInit {
 
     try {
       await firstValueFrom(id === undefined ? this.api.create(requete) : this.api.update(id, requete));
-      await this.router.navigate(['/catalogue']);
+      if (continuer && id === undefined) {
+        this.repartDeZero(requete.title);
+      } else {
+        await this.router.navigate(['/catalogue']);
+      }
     } catch (error) {
       this.probleme.set(this.describe(error));
     } finally {
       this.saving.set(false);
     }
+  }
+
+  /**
+   * Fiche vierge pour le média suivant. Le type et l'emplacement sont
+   * gardés : une série se saisit d'ordinaire d'une même étagère.
+   */
+  private repartDeZero(titre: string): void {
+    const type = this.form.controls.type.value;
+    const location = this.form.controls.location.value;
+
+    this.form.reset({ type, location });
+    this.scanForm.reset();
+    this.filmForm.reset();
+    this.scanResult.set(null);
+    this.scanProbleme.set(null);
+    this.films.set(null);
+    this.filmNotice.set(null);
+    this.dernierAjout.set(titre);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   protected async chercheCode(): Promise<void> {
@@ -282,6 +314,7 @@ export class MediaForm implements OnInit {
   }
 
   private async scanne(code: string): Promise<void> {
+    this.dernierAjout.set(null);
     this.searching.set(true);
     this.scanProbleme.set(null);
     this.scanResult.set(null);
@@ -312,11 +345,12 @@ export class MediaForm implements OnInit {
    * restes ; l'emplacement est conservé, seul le ménage le connaît.
    */
   private preRemplis(draft: ScanDraft): void {
+    const type = draftType(draft.type, this.chosenType());
     const champs = specificsToFields(draft.specifics ?? null);
     const nombre = (valeur: number | null): string => (valeur === null ? '' : String(valeur));
 
     this.form.patchValue({
-      type: draft.type,
+      type,
       title: draft.title ?? '',
       creator: draft.creator ?? '',
       year: nombre(draft.year ?? null),
@@ -343,7 +377,7 @@ export class MediaForm implements OnInit {
       maxPlayers: nombre(champs.maxPlayers),
     });
 
-    this.currentType.set(draft.type);
+    this.currentType.set(type);
   }
 
   /** Premier clic : la suppression étant définitive, elle se confirme. */

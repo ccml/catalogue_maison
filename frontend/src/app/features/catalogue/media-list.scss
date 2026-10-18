@@ -44,6 +44,9 @@ h1 {
 }
 
 .search label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.875rem;
   color: var(--ink-soft);
 }
@@ -55,13 +58,37 @@ input[type='search'] {
   padding: 0.45rem 0.6rem;
 }
 
-.types {
+.sort {
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sort label {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.sort select {
+  background: var(--paper-raised);
+  border: 1px solid var(--shelf);
+  border-radius: 2px;
+  padding: 0.45rem 0.6rem;
+  color: var(--ink);
+}
+
+.types {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   font-size: 0.9375rem;
 }
 
 .types button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   background: none;
   border: 0;
   padding: 0 0 2px;
@@ -106,18 +133,25 @@ input[type='search'] {
   gap: 1rem;
   padding: 0.85rem 0 0.85rem 0.85rem;
   border-bottom: 1px solid var(--shelf);
-  border-left: 3px solid var(--shelf);
+  border-left: 3px solid var(--type-color, var(--shelf));
 }
 
-/* Le liseré code le type. C'est le seul endroit où la couleur porte une
-   information de classement. */
-.item[data-type='Book'] { border-left-color: var(--type-book); }
-.item[data-type='ComicBook'] { border-left-color: var(--type-comic); }
-.item[data-type='Music'] { border-left-color: var(--type-music); }
-.item[data-type='Film'] { border-left-color: var(--type-film); }
-.item[data-type='Game'] { border-left-color: var(--type-game); }
+/* Le liseré et l'icône codent le type. C'est le seul endroit où la couleur
+   porte une information de classement. */
+.item[data-type='Book'] { --type-color: var(--type-book); }
+.item[data-type='ComicBook'] { --type-color: var(--type-comic); }
+.item[data-type='Music'] { --type-color: var(--type-music); }
+.item[data-type='Film'] { --type-color: var(--type-film); }
+.item[data-type='Game'] { --type-color: var(--type-game); }
+
+/* L'icône double le liseré : le type se lit sans dépendre de la couleur. */
+.type-icon {
+  align-self: center;
+  color: var(--type-color);
+}
 
 .item-main {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -157,6 +191,9 @@ a.work:hover {
 
 /* L'ocre ne sert qu'à cet état. */
 .lent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--ochre);
 }
 
@@ -176,10 +213,37 @@ a.work:hover {
   margin-top: 1rem;
 }
 
+/* La suite de l'étagère se demande : pas de défilement infini, qui
+   cacherait le pied de page et le compte. */
+.more {
+  background: none;
+  color: var(--pine);
+  border: 1px solid var(--pine);
+  border-radius: 2px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.more:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.more:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
 @media (max-width: 34rem) {
+  /* L'icône reste à côté du titre ; le rangement passe à la ligne, aligné
+     sur le titre. */
   .item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+  }
+
+  .item-aside {
+    flex-basis: 100%;
+    padding-inline-start: 2.25rem;
   }
 }

@@ -84,6 +84,12 @@ namespace Catalogue.Api.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("type");
 
+                    b.Property<int?>("Volume")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("integer")
+                        .HasColumnName("volume")
+                        .HasComputedColumnSql("(specifics ->> 'volume')::integer", true);
+
                     b.Property<int?>("Year")
                         .HasColumnType("integer")
                         .HasColumnName("year");
@@ -100,11 +106,11 @@ namespace Catalogue.Api.Infrastructure.Persistence.Migrations
                     b.HasIndex("Isbn")
                         .HasDatabaseName("ix_medias_isbn");
 
-                    b.HasIndex("Series")
-                        .HasDatabaseName("ix_medias_series");
-
                     b.HasIndex("Type")
                         .HasDatabaseName("ix_medias_type");
+
+                    b.HasIndex("Series", "Volume")
+                        .HasDatabaseName("ix_medias_series_volume");
 
                     b.ToTable("medias", (string)null);
                 });

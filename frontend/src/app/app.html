@@ -1,22 +1,32 @@
 <header class="masthead">
   <div class="masthead-inner">
-    <a class="wordmark" routerLink="/">Catalogue maison</a>
+    <a class="wordmark" routerLink="/">
+      <svg class="mark" viewBox="0 0 128 128" width="22" height="22" aria-hidden="true">
+        <path d="M30 54 L64 28 L98 54" fill="none" stroke="var(--ochre)" stroke-width="9"
+              stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="38" y="62" width="15" height="36" rx="3" fill="currentColor" />
+        <rect x="57" y="54" width="15" height="44" rx="3" fill="currentColor" />
+        <rect x="78" y="66" width="15" height="32" rx="3" fill="var(--ochre)"
+              transform="rotate(-11 93 98)" />
+      </svg>
+      <span>Catalogue maison</span>
+    </a>
 
     @if (auth.hasHousehold()) {
       <nav>
         <a routerLink="/catalogue" routerLinkActive="current" [routerLinkActiveOptions]="{ exact: true }">
-          Tout le catalogue
+          <app-icon name="collection" />Tout le catalogue
         </a>
         @if (auth.mayWrite()) {
-          <a routerLink="/catalogue/ajouter" routerLinkActive="current">Ajouter</a>
+          <a routerLink="/catalogue/ajouter" routerLinkActive="current"><app-icon name="add" />Ajouter</a>
         }
         @if (auth.mayAdministerHousehold()) {
-          <a routerLink="/menage" routerLinkActive="current">Membres</a>
+          <a routerLink="/menage" routerLinkActive="current"><app-icon name="settings" />Membres</a>
         }
       </nav>
     } @else if (auth.mayAdministerPlatform()) {
       <nav>
-        <a routerLink="/menages" routerLinkActive="current">Ménages</a>
+        <a routerLink="/menages" routerLinkActive="current"><app-icon name="home" />Ménages</a>
       </nav>
     }
 

@@ -24,11 +24,22 @@ main {
 }
 
 .wordmark {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-family: var(--serif);
   font-size: 1.0625rem;
   font-weight: 600;
   color: var(--ink);
   text-decoration: none;
+}
+
+/* La marque reprend la silhouette de l'icône d'application : les tranches
+ * suivent la couleur du texte, l'ocre ne tient que le toit et le livre penché. */
+.wordmark .mark {
+  flex: none;
+  /* Le dessin a sa propre marge interne : on l'aligne sur l'oeil du texte. */
+  margin-block-start: -0.08em;
 }
 
 nav {
@@ -39,6 +50,9 @@ nav {
 }
 
 nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--ink-soft);
   text-decoration: none;
   padding-bottom: 2px;

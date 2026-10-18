@@ -73,6 +73,7 @@ legend {
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1.25rem;
   margin-top: 0.75rem;
@@ -187,6 +188,13 @@ button.discret:hover {
   font-variant-numeric: tabular-nums;
 }
 
+button.secondaire,
+button.danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
 button.secondaire {
   background: none;
   color: var(--pine);
@@ -207,6 +215,14 @@ button.secondaire:hover:not(:disabled) {
   color: var(--ink-soft);
   border-inline-start: 3px solid var(--pine);
   padding-inline-start: 0.7rem;
+}
+
+.scan-notice.ajout {
+  margin-bottom: 1.5rem;
+}
+
+.scan-notice.ajout a {
+  margin-inline-start: 0.4rem;
 }
 
 .scan-notice.attention {

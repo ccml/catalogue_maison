@@ -5,10 +5,24 @@ import {
   type ScanResult,
 } from '../../core/api/media.models';
 
-/** Type proposé par la fiche, en minuscules pour la phrase : « livre », « BD ». */
-function typeLabel(result: ScanResult): string {
-  const label = mediaTypeLabels[result.draft?.type ?? 'Book'];
+/** Type retenu pour la fiche, en minuscules pour la phrase : « livre », « BD ». */
+function typeLabel(type: MediaType): string {
+  const label = mediaTypeLabels[type];
   return label === 'BD' ? label : label.toLowerCase();
+}
+
+/**
+ * Type sous lequel la fiche scannée est proposée.
+ *
+ * La notice l'emporte quand elle **précise** le type : parti de « Livre »,
+ * on peut scanner une BD. Mais « livre » n'est pas une information : c'est
+ * ce que renvoie une source qui ne sait pas mieux — une BD que la BnF n'a
+ * pas encore cataloguée comme telle passe pour un livre. Un utilisateur
+ * qui a choisi « BD » garde donc sa BD ; les champs communs (ISBN, éditeur,
+ * série, tome, collection) suivent tels quels.
+ */
+export function draftType(found: MediaType, chosen?: MediaType | null): MediaType {
+  return found === 'Book' && chosen === 'ComicBook' ? chosen : found;
 }
 
 /**
@@ -63,8 +77,8 @@ export interface ScanNotice {
  * bloqué, puisqu'il ne l'est jamais.
  */
 export function scanNotice(result: ScanResult, chosen?: MediaType | null): ScanNotice {
-  const notice = describeScan(result);
-  const found = result.draft?.type;
+  const found = result.draft ? draftType(result.draft.type, chosen) : undefined;
+  const notice = describeScan(result, found ?? 'Book');
 
   // Parti de « Livre », on peut scanner une BD : la fiche suit la notice,
   // et on le dit plutôt que de changer le titre de l'écran sans prévenir.
@@ -78,7 +92,7 @@ function articleFor(type: MediaType): string {
   return type === 'ComicBook' ? `une ${label}` : `un ${label.toLowerCase()}`;
 }
 
-function describeScan(result: ScanResult): ScanNotice {
+function describeScan(result: ScanResult, type: MediaType): ScanNotice {
   const isbnNote = result.draft?.specifics?.type === 'book' ? ' L’ISBN est déjà noté.' : '';
 
   switch (result.enrichment) {
@@ -86,7 +100,7 @@ function describeScan(result: ScanResult): ScanNotice {
       if (result.provisional) {
         // On ne devine pas le type à la place de la source : on prévient.
         return {
-          text: `Fiche pré-remplie d’après une notice provisoire de ${sourceLabel(result.source)}, établie avant catalogage : elle ne précise pas toujours le type. Vérifiez qu’il s’agit bien d’un ${typeLabel(result)}, puis enregistrez.`,
+          text: `Fiche pré-remplie d’après une notice provisoire de ${sourceLabel(result.source)}, établie avant catalogage : elle ne précise pas toujours le type. Vérifiez qu’il s’agit bien ${type === 'ComicBook' ? 'd’une' : 'd’un'} ${typeLabel(type)}, puis enregistrez.`,
           tone: 'attention',
         };
       }

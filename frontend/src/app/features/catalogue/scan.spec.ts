@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ScanResult } from '../../core/api/media.models';
 import {
+  draftType,
   filmDraftNotice,
   filmSearchNotice,
   isIsbn,
@@ -51,6 +52,20 @@ describe('scanNotice', () => {
     expect(scanNotice(result, 'ComicBook').text).not.toContain('le type a été changé');
   });
 
+  it('garde la BD choisie quand la notice ne dit que « livre »', () => {
+    // Le cas réel : une BD que la BnF n'a pas encore indexée comme telle.
+    const result: ScanResult = {
+      ...base,
+      provisional: true,
+      draft: { type: 'Book', title: 'Blacksad - Tome 7' },
+    };
+
+    const notice = scanNotice(result, 'ComicBook');
+
+    expect(notice.text).not.toContain('le type a été changé');
+    expect(notice.text).toContain('d’une BD');
+  });
+
   it('fait vérifier le type quand la notice est provisoire', () => {
     // Le cas réel : une BD tout juste parue, décrite par l'éditeur avant
     // catalogage, revient sans rien qui dise qu'elle est une BD.
@@ -99,6 +114,22 @@ describe('scanNotice', () => {
   it('nomme une source inconnue par son identifiant', () => {
     expect(sourceLabel('discogs')).toBe('discogs');
     expect(sourceLabel(null)).toBe('une source externe');
+  });
+});
+
+describe('draftType', () => {
+  it('suit la notice quand elle précise le type', () => {
+    expect(draftType('ComicBook', 'Book')).toBe('ComicBook');
+    expect(draftType('Music', 'ComicBook')).toBe('Music');
+  });
+
+  it('ne laisse pas « livre », type par défaut des sources, écraser une BD choisie', () => {
+    expect(draftType('Book', 'ComicBook')).toBe('ComicBook');
+  });
+
+  it('suit la notice sans type choisi', () => {
+    expect(draftType('Book', null)).toBe('Book');
+    expect(draftType('Book')).toBe('Book');
   });
 });
 

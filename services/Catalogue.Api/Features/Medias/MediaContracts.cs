@@ -53,3 +53,19 @@ public sealed record UpdateMediaRequest(
 public sealed record SetLentRequest(bool IsLent);
 
 public sealed record PagedResponse<T>(IReadOnlyList<T> Items, int Total, int Page, int Size);
+
+/// <summary>Ordre de la liste du catalogue.</summary>
+public enum MediaSort
+{
+    /// <summary>Derniers ajoutés d'abord : ce qu'on vient de saisir.</summary>
+    Recent,
+
+    /// <summary>Par titre.</summary>
+    Title,
+
+    /// <summary>Par auteur, réalisateur ou artiste, puis par titre.</summary>
+    Creator,
+
+    /// <summary>Par série, puis par tome : l'ordre d'une étagère de BD.</summary>
+    Series
+}

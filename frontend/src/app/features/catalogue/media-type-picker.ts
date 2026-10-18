@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { CatalogueApi } from '../../core/api/catalogue-api.service';
+import { Icon, mediaTypeIcons } from '../../shared/icon';
 import {
   mediaTypeLabels,
   mediaTypeSlugs,
@@ -16,7 +17,7 @@ import {
  */
 @Component({
   selector: 'app-media-type-picker',
-  imports: [RouterLink],
+  imports: [RouterLink, Icon],
   template: `
     <h1>Ajouter un média</h1>
     <p class="lede">Qu’avez-vous dans les mains ?</p>
@@ -25,8 +26,11 @@ import {
       @for (type of types; track type) {
         <li>
           <a [routerLink]="['/catalogue/ajouter', slugs[type]]" [attr.data-type]="type">
-            <span class="nom">{{ labels[type] }}</span>
-            <span class="comment">{{ how(type) }}</span>
+            <app-icon [name]="icons[type]" size="1.75rem" />
+            <span class="texte">
+              <span class="nom">{{ labels[type] }}</span>
+              <span class="comment">{{ how(type) }}</span>
+            </span>
           </a>
         </li>
       }
@@ -58,12 +62,23 @@ import {
        catalogue : le même code visuel d'un écran à l'autre. */
     a {
       display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
+      align-items: center;
+      gap: 1rem;
       padding: 0.9rem 0.9rem 0.9rem 1rem;
       border-inline-start: 4px solid var(--type-color, var(--shelf));
       color: var(--ink);
       text-decoration: none;
+    }
+
+    /* L'icône porte la couleur du type, comme le liseré. */
+    app-icon {
+      color: var(--type-color, var(--ink-soft));
+    }
+
+    .texte {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
     }
 
     a:hover .nom {
@@ -93,6 +108,7 @@ export class MediaTypePicker implements OnInit {
   protected readonly types = mediaTypes;
   protected readonly labels = mediaTypeLabels;
   protected readonly slugs = mediaTypeSlugs;
+  protected readonly icons = mediaTypeIcons;
 
   /** La recherche de films n'existe que si le backend a une clé OMDb : on ne la promet pas sans. */
   private readonly filmSearch = signal(false);

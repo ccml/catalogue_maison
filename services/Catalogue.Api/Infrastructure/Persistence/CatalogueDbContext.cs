@@ -71,6 +71,12 @@ public sealed class CatalogueDbContext : DbContext
              .HasMaxLength(256)
              .HasComputedColumnSql("specifics ->> 'series'", stored: true);
 
+        // Promotion du tome : la série seule ne suffit pas à ranger une BD,
+        // il faut l'ordre des albums. La validation C# garantit un entier.
+        media.Property(m => m.Volume)
+             .HasColumnName("volume")
+             .HasComputedColumnSql("(specifics ->> 'volume')::integer", stored: true);
+
         // Promotion du code-barres : c'est par lui qu'un disque, qui n'a pas
         // d'ISBN, est reconnu au scan. Lu quel que soit le type, de sorte
         // qu'un film ou un jeu qui en porterait un un jour ne demande aucune
@@ -82,7 +88,7 @@ public sealed class CatalogueDbContext : DbContext
 
         media.HasIndex(m => m.Isbn);
         media.HasIndex(m => m.Barcode);
-        media.HasIndex(m => m.Series);
+        media.HasIndex(m => new { m.Series, m.Volume });
         media.HasIndex(m => m.Type);
         media.HasIndex(m => m.AddedAt);
     }

@@ -8,6 +8,13 @@
   }
 </p>
 
+@if (dernierAjout(); as titre) {
+  <p class="scan-notice ajout" role="status">
+    « {{ titre }} » est au catalogue. Au suivant.
+    <a routerLink="/catalogue">Terminer et voir le catalogue</a>
+  </p>
+}
+
 @if (!correction() && offersScan()) {
   <section class="scan" aria-labelledby="scan-titre">
     <h2 id="scan-titre">{{ chosenType() === 'Music' ? 'Par son code-barres' : 'Par son ISBN' }}</h2>
@@ -26,7 +33,7 @@
       </button>
       @if (!camera()) {
         <button type="button" class="secondaire" (click)="camera.set(true)" [disabled]="searching()">
-          Scanner avec la caméra
+          <app-icon name="scan" />Scanner avec la caméra
         </button>
       }
     </form>
@@ -298,7 +305,12 @@
     <button type="submit" [disabled]="saving() || removing()">
       {{ saving() ? 'Enregistrement' : 'Enregistrer' }}
     </button>
-    <a routerLink="/catalogue">Annuler</a>
+    @if (!correction()) {
+      <button type="button" class="secondaire" (click)="submit(true)" [disabled]="saving()">
+        Enregistrer et ajouter un autre
+      </button>
+    }
+    <a routerLink="/catalogue">{{ dernierAjout() ? 'Terminer' : 'Annuler' }}</a>
   </div>
 </form>
 
@@ -308,7 +320,7 @@
       <p>Cette fiche sera définitivement retirée du catalogue. Il n'y a pas de corbeille.</p>
       <div class="actions">
         <button type="button" class="danger" (click)="supprime()" [disabled]="removing()">
-          {{ removing() ? 'Suppression' : 'Supprimer définitivement' }}
+          <app-icon name="delete" />{{ removing() ? 'Suppression' : 'Supprimer définitivement' }}
         </button>
         <button type="button" class="discret" (click)="annuleSuppression()">Annuler</button>
       </div>
