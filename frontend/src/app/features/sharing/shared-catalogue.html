@@ -1,0 +1,89 @@
+<p class="back"><a routerLink="/partages">← Partagés avec nous</a></p>
+<h1>{{ householdName() ?? 'Catalogue partagé' }}</h1>
+
+@if (problem(); as problem) {
+  <p class="notice notice-problem" role="alert">{{ problem.message }}</p>
+}
+
+@if (openLoans().length > 0) {
+  <section class="requests" aria-labelledby="mes-demandes">
+    <h2 id="mes-demandes">Vos demandes</h2>
+    <ul>
+      @for (loan of openLoans(); track loan.id) {
+        <li>
+          <span class="work">{{ loan.mediaTitle }}</span>
+          <span class="status">{{ loanLabels[loan.status] }}</span>
+          @if (loan.status === 'Requested') {
+            <button type="button" class="lend" [disabled]="busy() !== null" (click)="cancel(loan)">
+              Retirer la demande
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+<div class="filters">
+  <div class="search">
+    <label for="recherche"><app-icon name="search" />Titre, auteur ou série</label>
+    <input id="recherche" #recherche type="search" autocomplete="off" (input)="search(recherche.value)" />
+  </div>
+
+  <div class="types" role="group" aria-label="Filtrer par type de média">
+    <button type="button" [class.current]="type() === null" (click)="filterByType(null)">Tout</button>
+    @for (mediaType of types; track mediaType) {
+      <button type="button" [class.current]="type() === mediaType" (click)="filterByType(mediaType)">
+        <app-icon [name]="icons[mediaType]" />{{ labels[mediaType] }}
+      </button>
+    }
+  </div>
+</div>
+
+@if (loading()) {
+  <p class="notice">Lecture du catalogue…</p>
+} @else if (items().length === 0 && problem() === null) {
+  <p class="notice">
+    @if (term().length > 0 || type() !== null) {
+      Aucun média ne correspond à cette recherche.
+    } @else {
+      Ce catalogue est vide.
+    }
+  </p>
+} @else {
+  <ol class="shelf">
+    @for (media of items(); track media.id) {
+      <li class="item" [attr.data-type]="media.type">
+        <app-icon class="type-icon" [name]="icons[media.type]" [label]="labels[media.type]" />
+        <div class="item-main">
+          <span class="work">{{ media.title }}</span>
+          <span class="attribution">{{ attribution(media) }}</span>
+        </div>
+
+        <div class="item-aside">
+          @if (media.availability === 'Available') {
+            @if (auth.mayWrite()) {
+              <button type="button" class="lend" [disabled]="busy() !== null" (click)="request(media)">
+                Demander à emprunter
+              </button>
+            } @else {
+              <span class="where">{{ availabilityLabels[media.availability] }}</span>
+            }
+          } @else {
+            <span class="availability" [attr.data-availability]="media.availability">
+              {{ availabilityLabels[media.availability] }}
+            </span>
+          }
+        </div>
+      </li>
+    }
+  </ol>
+
+  <p class="count">{{ total() }} {{ total() === 1 ? 'média' : 'médias' }}</p>
+
+  @if (remaining() > 0) {
+    <button type="button" class="more" (click)="showMore()" [disabled]="loadingMore()">
+      {{ loadingMore() ? 'Lecture…' : 'Afficher la suite' }}
+    </button>
+  }
+}

@@ -31,6 +31,8 @@ public sealed class CatalogueDbContext : DbContext
 
     public DbSet<Media> Medias => Set<Media>();
 
+    public DbSet<Loan> Loans => Set<Loan>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var media = modelBuilder.Entity<Media>();
@@ -91,5 +93,31 @@ public sealed class CatalogueDbContext : DbContext
         media.HasIndex(m => new { m.Series, m.Volume });
         media.HasIndex(m => m.Type);
         media.HasIndex(m => m.AddedAt);
+
+        var loan = modelBuilder.Entity<Loan>();
+
+        loan.ToTable("loans");
+        loan.HasKey(l => l.Id);
+        loan.Property(l => l.Status)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+        loan.Property(l => l.BorrowerName).HasMaxLength(Loan.BorrowerNameMaxLength).IsRequired();
+
+        // Un média supprimé emporte son historique de prêts.
+        loan.HasOne<Media>()
+            .WithMany()
+            .HasForeignKey(l => l.MediaId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Au plus un prêt en cours par média : c'est la base qui garantit que
+        // deux acceptations concurrentes ne prêtent pas deux fois le même
+        // objet. Le littéral suit la conversion en chaîne de LoanStatus.
+        loan.HasIndex(l => l.MediaId)
+            .IsUnique()
+            .HasFilter("status = 'Active'")
+            .HasDatabaseName("ix_loans_media_id_active");
+        loan.HasIndex(l => new { l.MediaId, l.Status });
+        loan.HasIndex(l => new { l.ShareId, l.Status });
     }
 }

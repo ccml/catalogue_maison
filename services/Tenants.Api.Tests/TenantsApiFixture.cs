@@ -53,6 +53,8 @@ public sealed class TenantsApiFixture : WebApplicationFactory<Program>, IAsyncLi
 
     public FakeCatalogueProvisioning Catalogue { get; } = new();
 
+    public FakeCatalogueSharing Sharing { get; } = new();
+
     public async Task InitializeAsync()
     {
         await _postgres.StartAsync();
@@ -75,8 +77,11 @@ public sealed class TenantsApiFixture : WebApplicationFactory<Program>, IAsyncLi
     {
         Directory.Reset();
         Catalogue.Reset();
+        Sharing.Reset();
 
         await using var db = CreateDbContext();
+        await db.ShareInvitations.ExecuteDeleteAsync();
+        await db.Shares.ExecuteDeleteAsync();
         await db.Members.ExecuteDeleteAsync();
         await db.Households.ExecuteDeleteAsync();
 
@@ -142,6 +147,8 @@ public sealed class TenantsApiFixture : WebApplicationFactory<Program>, IAsyncLi
             services.AddSingleton<IIdentityDirectory>(Directory);
             services.RemoveAll<ICatalogueProvisioning>();
             services.AddSingleton<ICatalogueProvisioning>(Catalogue);
+            services.RemoveAll<ICatalogueSharing>();
+            services.AddSingleton<ICatalogueSharing>(Sharing);
 
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
@@ -345,5 +352,58 @@ public sealed class FakeCatalogueProvisioning : ICatalogueProvisioning
 
         _dropped.Enqueue(household.Value);
         return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Catalogue.Api simulé côté partage : garde trace de chaque appel relayé,
+/// et répond ce que le test lui fait répondre.
+/// </summary>
+public sealed class FakeCatalogueSharing : ICatalogueSharing
+{
+    public sealed record Call(string Method, string Owner, Guid ShareId, string Path, IReadOnlyDictionary<string, string?> Query, string? Body);
+
+    private readonly ConcurrentQueue<Call> _calls = new();
+
+    public IReadOnlyCollection<Call> Calls => _calls;
+
+    /// <summary>Réponse rendue à chaque appel ; par défaut un 200 JSON vide.</summary>
+    public Func<Call, CatalogueReply> Answer { get; set; } = Ok("{}");
+
+    public bool Unreachable { get; set; }
+
+    public static Func<Call, CatalogueReply> Ok(string json, int status = 200) =>
+        _ => new CatalogueReply(status, "application/json; charset=utf-8", System.Text.Encoding.UTF8.GetBytes(json));
+
+    public void Reset()
+    {
+        _calls.Clear();
+        Answer = Ok("{}");
+        Unreachable = false;
+    }
+
+    public Task<CatalogueReply> SendAsync(
+        HttpMethod method,
+        TenantId owner,
+        Guid shareId,
+        string path,
+        IReadOnlyDictionary<string, string?>? query,
+        object? body,
+        CancellationToken cancellationToken)
+    {
+        if (Unreachable)
+        {
+            throw new CatalogueUnavailableException();
+        }
+
+        var call = new Call(
+            method.Method,
+            owner.Value,
+            shareId,
+            path,
+            query ?? new Dictionary<string, string?>(),
+            body is null ? null : JsonSerializer.Serialize(body));
+        _calls.Enqueue(call);
+        return Task.FromResult(Answer(call));
     }
 }

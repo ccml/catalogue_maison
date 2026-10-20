@@ -50,6 +50,23 @@ describe('describeHttpError', () => {
     expect(describeHttpError(refus(503)).kind).toBe('autre');
   });
 
+  it("rend l'explication d'un conflit telle que l'API la donne", () => {
+    const probleme = describeHttpError(
+      new HttpErrorResponse({
+        status: 409,
+        error: { status: 409, title: 'Prêt impossible', detail: 'Ce média est déjà prêté.' },
+      }),
+    );
+
+    expect(probleme.kind).toBe('conflit');
+    expect(probleme.message).toBe('Ce média est déjà prêté.');
+    expect(probleme.terminal).toBe(false);
+  });
+
+  it('a une explication par défaut pour un conflit muet', () => {
+    expect(describeHttpError(refus(409)).message).toContain('rechargez');
+  });
+
   it('signale une API injoignable', () => {
     expect(describeHttpError(refus(0)).kind).toBe('reseau');
   });

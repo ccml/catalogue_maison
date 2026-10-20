@@ -1,0 +1,31 @@
+<h1>Partagés avec nous</h1>
+<p class="lede">
+  Les catalogues d'autres ménages que le vôtre peut consulter, pour y trouver quelque chose à
+  emprunter.
+</p>
+
+@if (problem(); as problem) {
+  <p class="notice notice-problem" role="alert">{{ problem.message }}</p>
+}
+
+@if (loading()) {
+  <p class="notice">Lecture des partages…</p>
+} @else if (shares().length === 0 && problem() === null) {
+  <p class="notice">
+    Aucun catalogue n'est partagé avec votre ménage pour l'instant. Pour en consulter un,
+    demandez un code d'invitation au ménage concerné
+    @if (auth.mayAdministerHousehold()) {
+      et saisissez-le dans <a routerLink="/menage/partage">le partage du ménage</a>.
+    } @else {
+      : la personne qui administre votre ménage le saisira.
+    }
+  </p>
+} @else {
+  <ul class="shares">
+    @for (share of shares(); track share.id) {
+      <li>
+        <a class="household" [routerLink]="['/partages', share.id]">{{ share.householdName }}</a>
+      </li>
+    }
+  </ul>
+}

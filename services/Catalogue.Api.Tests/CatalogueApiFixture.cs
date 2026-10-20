@@ -134,6 +134,12 @@ public sealed class CatalogueApiFixture : WebApplicationFactory<Program>, IAsync
         });
     }
 
+    /// <summary>
+    /// Contexte ouvert directement sur le schéma d'un ménage, pour préparer
+    /// un état que l'API ne sait pas — ou pas encore — produire.
+    /// </summary>
+    public CatalogueDbContext ContextFor(string tenant) => BuildContext(TenantId.Create(tenant));
+
     private CatalogueDbContext BuildContext(TenantId tenant)
     {
         var connectionString = new NpgsqlConnectionStringBuilder(_postgres.GetConnectionString())

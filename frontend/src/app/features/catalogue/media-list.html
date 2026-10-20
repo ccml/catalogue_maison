@@ -76,16 +76,41 @@
           </div>
 
           <div class="item-aside">
-            @if (media.isLent) {
-              <span class="lent"><app-icon name="lent" />Prêté</span>
-            } @else if (media.location) {
-              <span class="where">{{ media.location }}</span>
-            }
+            @if (lending() === media.id) {
+              <form class="lend-form" (submit)="$event.preventDefault(); lend(media, emprunteur.value)">
+                <label class="a11y-only" [for]="'emprunteur-' + media.id">Prêté à</label>
+                <input
+                  #emprunteur
+                  [id]="'emprunteur-' + media.id"
+                  type="text"
+                  maxlength="200"
+                  placeholder="À qui ?"
+                  autocomplete="off"
+                />
+                <button type="submit" class="lend">Prêter</button>
+                <button type="button" class="lend" (click)="cancelLending()">Annuler</button>
+              </form>
+            } @else {
+              @if (media.isLent) {
+                <span class="lent">
+                  <app-icon name="lent" />
+                  @if (media.lentTo && media.lentTo !== 'Inconnu') {
+                    Prêté à {{ media.lentTo }}
+                  } @else {
+                    Prêté
+                  }
+                </span>
+              } @else if (media.location) {
+                <span class="where">{{ media.location }}</span>
+              }
 
-            @if (auth.mayWrite()) {
-              <button type="button" class="lend" (click)="toggleLent(media)">
-                {{ media.isLent ? 'Marquer revenu' : 'Marquer prêté' }}
-              </button>
+              @if (auth.mayWrite()) {
+                @if (media.isLent) {
+                  <button type="button" class="lend" (click)="markReturned(media)">Marquer revenu</button>
+                } @else {
+                  <button type="button" class="lend" (click)="startLending(media)">Prêter…</button>
+                }
+              }
             }
           </div>
         </li>

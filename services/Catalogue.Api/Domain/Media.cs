@@ -29,6 +29,10 @@ public class Media
     /// <summary>Où le média se trouve physiquement dans la maison.</summary>
     public string? Location { get; private set; }
 
+    /// <summary>
+    /// Vrai exactement quand un <see cref="Loan"/> est en cours. Écrit
+    /// seulement par les transitions de <see cref="Loan"/>.
+    /// </summary>
     public bool IsLent { get; private set; }
 
     public MediaSpecifics? Specifics { get; private set; }
@@ -91,8 +95,9 @@ public class Media
     }
 
     /// <summary>
-    /// Recrée une fiche venue d'un export : date d'ajout et état « prêté »
-    /// d'origine conservés, nouvel identifiant. Les règles sont celles de la
+    /// Recrée une fiche venue d'un export : date d'ajout d'origine conservée,
+    /// nouvel identifiant. L'état « prêté » passe par <see cref="Loan.Lend"/>,
+    /// comme tout prêt. Les règles sont celles de la
     /// saisie, à ceci près que l'année se juge par rapport à
     /// <paramref name="now"/> et non à la date d'ajout — une fiche corrigée
     /// après son ajout doit pouvoir revenir telle quelle.
@@ -104,7 +109,6 @@ public class Media
         string? creator,
         int? year,
         string? location,
-        bool isLent,
         MediaSpecifics? specifics,
         DateTimeOffset? addedAt,
         DateTimeOffset now)
@@ -124,7 +128,7 @@ public class Media
             Creator = Blank(creator),
             Year = year,
             Location = Blank(location),
-            IsLent = isLent,
+            IsLent = false,
             Specifics = Canonicalize(specifics),
             AddedAt = addedAt ?? now
         };
@@ -162,8 +166,9 @@ public class Media
         Specifics = Canonicalize(specifics);
     }
 
-    /// <summary>Marque le média comme prêté ou revenu.</summary>
-    public void SetLent(bool isLent) => IsLent = isLent;
+    internal void MarkLent() => IsLent = true;
+
+    internal void MarkReturned() => IsLent = false;
 
     /// <summary>
     /// Remplace les spécificités, par exemple après un enrichissement validé

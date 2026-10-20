@@ -9,6 +9,12 @@ public static class Policies
     /// <summary>Appartenir à un ménage exploitable. Socle de tout accès.</summary>
     public const string HouseholdMember = "household-member";
 
+    /// <summary>
+    /// Être adulte ou administrateur de son ménage : demander un prêt à un
+    /// ménage partenaire engage le ménage.
+    /// </summary>
+    public const string HouseholdAdult = "household-adult";
+
     /// <summary>Administrer les membres de <em>son</em> ménage, et d'aucun autre.</summary>
     public const string HouseholdAdmin = "household-admin";
 

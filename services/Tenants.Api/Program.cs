@@ -1,5 +1,6 @@
 using Tenants.Api.Features.Households;
 using Tenants.Api.Features.Members;
+using Tenants.Api.Features.Sharing;
 using Tenants.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +12,7 @@ var app = builder.Build();
 app.UseTenantsApi();
 app.MapMemberEndpoints();
 app.MapHouseholdEndpoints();
+app.MapSharingEndpoints();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();

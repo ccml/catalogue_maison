@@ -91,7 +91,7 @@ public static class TransferEndpoints
         }
 
         var now = clock.GetUtcNow();
-        var candidates = new List<Media>(file.Medias.Count);
+        var candidates = new List<(Media Media, bool IsLent)>(file.Medias.Count);
         List<string> errors = [];
 
         for (var i = 0; i < file.Medias.Count; i++)
@@ -99,16 +99,15 @@ public static class TransferEndpoints
             var entry = file.Medias[i];
             try
             {
-                candidates.Add(Media.Import(
+                candidates.Add((Media.Import(
                     entry.Type,
                     entry.Title,
                     entry.Creator,
                     entry.Year,
                     entry.Location,
-                    entry.IsLent,
                     entry.Specifics,
                     entry.AddedAt,
-                    now));
+                    now), entry.IsLent));
             }
             catch (MediaValidationException exception)
             {
@@ -145,7 +144,7 @@ public static class TransferEndpoints
         List<SkippedMedia> skipped = [];
         for (var i = 0; i < candidates.Count; i++)
         {
-            var media = candidates[i];
+            var (media, isLent) = candidates[i];
             if (detector.Check(media.Type, media.Title, media.Creator, media.Specifics) is { } reason)
             {
                 skipped.Add(new SkippedMedia(i + 1, media.Type, media.Title, reason));
@@ -153,6 +152,13 @@ public static class TransferEndpoints
             }
 
             db.Medias.Add(media);
+
+            // Le fichier ne dit que « prêté » : l'emprunteur n'en fait pas
+            // partie, il est inconnu.
+            if (isLent)
+            {
+                db.Loans.Add(Loan.Lend(media, Loan.UnknownBorrower, now));
+            }
         }
 
         // Un seul SaveChanges : une seule transaction.

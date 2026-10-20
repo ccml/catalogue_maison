@@ -3,6 +3,7 @@ using Catalogue.Api.Domain;
 namespace Catalogue.Api.Features.Medias;
 
 /// <summary>Fiche réduite, pour les listes.</summary>
+/// <param name="LentTo">Emprunteur du prêt en cours, quand <paramref name="IsLent"/>.</param>
 public sealed record MediaSummaryResponse(
     Guid Id,
     MediaType Type,
@@ -11,9 +12,11 @@ public sealed record MediaSummaryResponse(
     int? Year,
     string? Location,
     bool IsLent,
-    DateTimeOffset AddedAt);
+    DateTimeOffset AddedAt,
+    string? LentTo = null);
 
 /// <summary>Fiche complète, spécificités incluses.</summary>
+/// <param name="LentTo">Emprunteur du prêt en cours, quand <paramref name="IsLent"/>.</param>
 public sealed record MediaDetailResponse(
     Guid Id,
     MediaType Type,
@@ -23,7 +26,8 @@ public sealed record MediaDetailResponse(
     string? Location,
     bool IsLent,
     DateTimeOffset AddedAt,
-    MediaSpecifics? Specifics);
+    MediaSpecifics? Specifics,
+    string? LentTo = null);
 
 /// <summary>
 /// Création d'un média. Seuls <see cref="Type"/> et <see cref="Title"/> sont
@@ -50,7 +54,12 @@ public sealed record UpdateMediaRequest(
     string? Location = null,
     MediaSpecifics? Specifics = null);
 
-public sealed record SetLentRequest(bool IsLent);
+/// <summary>
+/// Prêt ou retour saisi par le ménage lui-même. Rejoué dans le même sens, ne
+/// fait rien.
+/// </summary>
+/// <param name="BorrowerName">À qui le média est prêté ; « Inconnu » s'il est omis.</param>
+public sealed record SetLentRequest(bool IsLent, string? BorrowerName = null);
 
 public sealed record PagedResponse<T>(IReadOnlyList<T> Items, int Total, int Page, int Size);
 

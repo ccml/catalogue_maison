@@ -29,7 +29,8 @@ chacune dans son propre sous-dossier à la racine du dépôt.
   externes, met en cache les résultats. N'écrit jamais dans le catalogue :
   Catalogue.Api l'appelle et décide quoi conserver.
 - **Tenants.Api** — registre des ménages et données applicatives de
-  l'utilisateur (préférences, rôle dans le ménage). **N'authentifie pas et
+  l'utilisateur (préférences, rôle dans le ménage), et partages de
+  catalogue entre ménages. **N'authentifie pas et
   n'émet aucun jeton** : c'est Keycloak qui le fait. Aucun mot de passe,
   aucune identifiant de connexion ne doit être stocké ici.
 - **Keycloak** — fournisseur d'identité (hors dépôt, conteneurisé). Seule
@@ -271,12 +272,71 @@ lecteur du schéma privé d'un service. L'inversion d'écriture ci-dessus donne
 le même résultat — une seule interface, une seule vérité — avec du C# qu'on
 écrit de toute façon.
 
+### Partage de catalogue entre ménages
+
+Un ménage peut laisser un autre **consulter** son catalogue et lui
+**demander un prêt**. Le partage est à sens unique, et ne fait entrer
+personne dans un autre ménage : le jeton d'un membre de B reste un jeton de
+B. C'est le serveur qui décide ce que B peut lire chez A.
+
+```
+  Membre de B ──> Tenants.Api /sharing/received/{shareId}/…
+                     │ ménage B lu dans le jeton ; partage accordé à B,
+                     │ A et B actifs — sinon 404
+                     │ client credentials, rôle de realm « partage »
+                     ▼
+                 Catalogue.Api /internal/households/{A}/shares/{shareId}/…
+```
+
+- Les partages vivent dans la base de `Tenants.Api` (`shares`,
+  `share_invitations`), feature `Sharing/`. L'administrateur de A crée un
+  **code d'invitation** à usage unique (7 jours, seule son empreinte est
+  stockée) et le transmet lui-même ; l'administrateur de B le saisit, et le
+  partage est lié au ménage de **son** jeton. Personne ne désigne jamais
+  l'autre ménage : le client ne connaît qu'un `shareId` opaque et un nom
+  affiché, jamais un identifiant de ménage.
+- **Seconde exception** à « le ménage n'est désigné que par le jeton » :
+  les endpoints `/internal/households/{id}/shares/{shareId}/…` de
+  `Catalogue.Api`, marqués `ServiceEndpoint.Sharing`, exigent le rôle
+  `partage` **et l'absence** de claim `tenant` — même schéma que le
+  provisionnement, avec un rôle distinct. Ils ouvrent le schéma par
+  `HouseholdContextFactory` (chemin d'administration explicite) et
+  vérifient sa version comme pour un membre. nginx ne les expose pas.
+- La vue partagée est **restreinte** : ni emplacement, ni date d'ajout, ni
+  emprunteur. Elle dit seulement si un média est disponible, prêté, demandé
+  ou prêté au ménage qui consulte.
+- Tous les membres de B consultent ; seuls adultes et administrateur de B
+  demandent un prêt (policy `HouseholdAdult`).
+- Retirer (A) ou abandonner (B) un partage coupe l'accès immédiatement : il
+  est vérifié à chaque appel. Un ménage archivé disparaît des partages de
+  l'autre ; la purge efface ses partages dans les deux sens.
+
+### Prêts
+
+Une table `loans` par schéma de ménage, une ligne par prêt (historique
+conservé) : `Requested` → `Active` → `Returned`, ou `Declined` /
+`Cancelled`. Au plus un prêt `Active` par média, garanti par un index
+unique partiel. `Prete` (`is_lent`) reste une colonne réelle — filtre,
+export — mais n'est écrite que par les transitions de `Loan`.
+
+L'emprunteur est un **libellé copié** (« Durand (Bruno) », ou un nom saisi
+pour un prêt manuel), jamais l'identifiant d'un autre ménage : un schéma ne
+contient rien qui en désigne un autre. Accepter une demande, ou prêter
+directement, refuse les autres demandes en attente sur ce média. L'export
+ne porte que `IsLent` ; un média importé prêté reçoit un emprunteur
+« Inconnu ».
+
 ### Tests
 
 Au moins un test d'intégration vérifie qu'une requête authentifiée sur le
 ménage A ne retourne **rien** du ménage B — y compris par recherche, par
 accès direct à un identifiant, et par scan d'un code-barres déjà présent
 chez B.
+
+Pour le partage, les tests vérifient qu'un ménage sans partage n'atteint
+rien par un `shareId`, que le partage est à sens unique, que la vue
+partagée ne contient ni emplacement ni emprunteur, et que chaque rôle de
+service n'ouvre que ses propres endpoints.
 
 ## Modèle de média
 

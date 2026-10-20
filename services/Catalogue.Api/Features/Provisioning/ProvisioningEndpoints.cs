@@ -29,7 +29,7 @@ public static class ProvisioningEndpoints
         var group = routes
             .MapGroup("/admin/households")
             .RequireAuthorization(Policies.Provisioning)
-            .WithMetadata(ProvisioningEndpoint.Instance)
+            .WithMetadata(ServiceEndpoint.Provisioning)
             .WithTags("Provisioning");
 
         group.MapPut("/{id}/schema", ProvisionAsync);

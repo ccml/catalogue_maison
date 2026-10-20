@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { APP_SETTINGS } from '../app-settings';
@@ -7,6 +7,16 @@ import type {
   CreateHouseholdRequest,
   Household,
 } from './household.models';
+import type { Paged } from './media.models';
+import type {
+  CreatedInvitation,
+  Invitation,
+  Share,
+  SharedLoan,
+  SharedMediaDetail,
+  SharedMediaQuery,
+  SharedMedia,
+} from './sharing.models';
 import type {
   CreateMemberRequest,
   Inconsistencies,
@@ -66,6 +76,85 @@ export class TenantsApi {
   /** Retire une entrée du registre dont le compte a disparu ou quitté le ménage. */
   removeRegistryEntry(subject: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/members/${subject}/registry-entry`);
+  }
+
+  // Partage de catalogue entre ménages. L'autre ménage n'est jamais désigné
+  // que par un partage : son identifiant n'est pas connu du client.
+
+  /** Le code rendu ne pourra plus être relu : il est à transmettre tout de suite. */
+  createInvitation(): Observable<CreatedInvitation> {
+    return this.http.post<CreatedInvitation>(`${this.baseUrl}/sharing/invitations`, null);
+  }
+
+  invitations(): Observable<readonly Invitation[]> {
+    return this.http.get<readonly Invitation[]>(`${this.baseUrl}/sharing/invitations`);
+  }
+
+  cancelInvitation(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/sharing/invitations/${id}`);
+  }
+
+  acceptInvitation(code: string): Observable<Share> {
+    return this.http.post<Share>(`${this.baseUrl}/sharing/invitations/accept`, { code });
+  }
+
+  /** Les ménages qui consultent notre catalogue. */
+  grantedShares(): Observable<readonly Share[]> {
+    return this.http.get<readonly Share[]>(`${this.baseUrl}/sharing/granted`);
+  }
+
+  revokeShare(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/sharing/granted/${id}`);
+  }
+
+  /** Les catalogues que notre ménage peut consulter. */
+  receivedShares(): Observable<readonly Share[]> {
+    return this.http.get<readonly Share[]>(`${this.baseUrl}/sharing/received`);
+  }
+
+  renounceShare(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/sharing/received/${id}`);
+  }
+
+  sharedMedias(shareId: string, query: SharedMediaQuery = {}): Observable<Paged<SharedMedia>> {
+    let params = new HttpParams();
+    if (query.type) {
+      params = params.set('type', query.type);
+    }
+    if (query.q && query.q.trim().length > 0) {
+      params = params.set('q', query.q.trim());
+    }
+    if (query.sort) {
+      params = params.set('sort', query.sort);
+    }
+    if (query.page !== undefined) {
+      params = params.set('page', String(query.page));
+    }
+    if (query.size !== undefined) {
+      params = params.set('size', String(query.size));
+    }
+
+    return this.http.get<Paged<SharedMedia>>(`${this.baseUrl}/sharing/received/${shareId}/medias`, { params });
+  }
+
+  sharedMedia(shareId: string, mediaId: string): Observable<SharedMediaDetail> {
+    return this.http.get<SharedMediaDetail>(`${this.baseUrl}/sharing/received/${shareId}/medias/${mediaId}`);
+  }
+
+  /** Rejouable : une demande déjà en attente est rendue, pas dupliquée. */
+  requestLoan(shareId: string, mediaId: string): Observable<SharedLoan> {
+    return this.http.post<SharedLoan>(
+      `${this.baseUrl}/sharing/received/${shareId}/medias/${mediaId}/loan-requests`,
+      null,
+    );
+  }
+
+  sharedLoans(shareId: string): Observable<readonly SharedLoan[]> {
+    return this.http.get<readonly SharedLoan[]>(`${this.baseUrl}/sharing/received/${shareId}/loan-requests`);
+  }
+
+  cancelLoanRequest(shareId: string, loanId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/sharing/received/${shareId}/loan-requests/${loanId}`);
   }
 
   // Administration des ménages, réservée à l'opérateur. Ici seulement, le

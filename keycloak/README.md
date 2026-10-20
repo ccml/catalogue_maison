@@ -130,9 +130,16 @@ par défaut du client `tenants-api`) : c'est ainsi que Tenants.Api fait créer
 le schéma d'un nouveau ménage par Catalogue.Api. Le jeton ne porte aucun
 claim `tenant`, et Catalogue.Api refuse ce rôle s'il en porte un.
 
+Il porte de même le rôle de realm `partage` : c'est par lui que Tenants.Api
+lit, pour un ménage partenaire, le catalogue d'un ménage qui le lui a
+partagé, et y dépose des demandes de prêt. Mêmes garde-fous : aucun claim
+`tenant`, et un rôle distinct de `provisionnement`, de sorte que chaque
+endpoint interne n'accepte que l'usage qui lui revient.
+
 Le rôle `admin-plateforme` (compte `operateur`) ouvre l'administration des
-ménages eux-mêmes, dans Tenants.Api seulement. Ni `provisionnement` ni
-`admin-plateforme` ne font partie des rôles que Tenants.Api attribue.
+ménages eux-mêmes, dans Tenants.Api seulement. Ni `provisionnement`, ni
+`partage`, ni `admin-plateforme` ne font partie des rôles que Tenants.Api
+attribue.
 
 Le frontend reçoit l'audience `tenants-api` (scope `tenants-api-audience`
 parmi les scopes par défaut de `catalogue-frontend`) : un même jeton

@@ -1,0 +1,103 @@
+h1 {
+  margin: 2.5rem 0 0.5rem;
+}
+
+h2 {
+  margin: 2.5rem 0 1rem;
+}
+
+.lede {
+  color: var(--ink-soft);
+  margin: 0 0 1rem;
+  max-width: var(--measure);
+}
+
+.notice {
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.notice-problem {
+  color: var(--ochre);
+  margin-bottom: 1rem;
+}
+
+/* Même registre que l'étagère du catalogue : des lignes, un liseré par type. */
+.loans {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--shelf);
+}
+
+.loan {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.85rem 0 0.85rem 0.85rem;
+  border-bottom: 1px solid var(--shelf);
+  border-left: 3px solid var(--type-color, var(--shelf));
+}
+
+.loan[data-type='Book'] { --type-color: var(--type-book); }
+.loan[data-type='ComicBook'] { --type-color: var(--type-comic); }
+.loan[data-type='Music'] { --type-color: var(--type-music); }
+.loan[data-type='Film'] { --type-color: var(--type-film); }
+.loan[data-type='Game'] { --type-color: var(--type-game); }
+
+.type-icon {
+  align-self: center;
+  color: var(--type-color);
+}
+
+.loan-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.work {
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+}
+
+.who {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  flex-shrink: 0;
+  font-size: 0.875rem;
+}
+
+.actions button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--pine);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.actions button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+@media (max-width: 34rem) {
+  .loan {
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+  }
+
+  .actions {
+    flex-basis: 100%;
+    padding-inline-start: 2.25rem;
+  }
+}

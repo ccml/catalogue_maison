@@ -90,6 +90,11 @@ public static class CatalogueApiRegistration
                 .RequireRole(Roles.Provisioning)
                 .RequireAssertion(context => !context.User.HasClaim(c => c.Type == ClaimsTenantProvider.ClaimName)));
 
+            options.AddPolicy(Policies.Sharing, policy => policy
+                .RequireAuthenticatedUser()
+                .RequireRole(Roles.Sharing)
+                .RequireAssertion(context => !context.User.HasClaim(c => c.Type == ClaimsTenantProvider.ClaimName)));
+
             // Rien n'est accessible sans ménage, sauf ce qui est explicitement
             // marqué anonyme.
             options.FallbackPolicy = options.GetPolicy(Policies.HouseholdMember);
@@ -98,6 +103,7 @@ public static class CatalogueApiRegistration
         services.AddSingleton<TenantConnectionStringFactory>();
         services.AddSingleton<SchemaVersionRegistry>();
         services.AddScoped<HouseholdSchemaProvisioner>();
+        services.AddSingleton<HouseholdContextFactory>();
 
         services.AddDbContext<CatalogueDbContext>((serviceProvider, options) =>
         {

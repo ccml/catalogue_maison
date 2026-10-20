@@ -1,0 +1,44 @@
+h1 {
+  margin: 2.5rem 0 0.5rem;
+}
+
+.lede {
+  color: var(--ink-soft);
+  margin: 0 0 1.5rem;
+  max-width: var(--measure);
+}
+
+.notice {
+  color: var(--ink-soft);
+  max-width: var(--measure);
+  margin: 0;
+}
+
+.notice-problem {
+  color: var(--ochre);
+  margin-bottom: 1rem;
+}
+
+.shares {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--shelf);
+}
+
+.shares li {
+  border-bottom: 1px solid var(--shelf);
+}
+
+.household {
+  display: block;
+  padding: 0.95rem 0;
+  font-family: var(--serif);
+  font-size: 1.125rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.household:hover {
+  color: var(--pine);
+}

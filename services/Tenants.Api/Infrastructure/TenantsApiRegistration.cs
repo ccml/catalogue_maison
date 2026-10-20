@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,6 +10,7 @@ using Tenants.Api.Domain;
 using Tenants.Api.Features.Households;
 using Tenants.Api.Infrastructure.Catalogue;
 using Tenants.Api.Features.Members;
+using Tenants.Api.Features.Sharing;
 using Tenants.Api.Infrastructure.Keycloak;
 using Tenants.Api.Infrastructure.Persistence;
 using Tenants.Api.Infrastructure.Tenancy;
@@ -80,6 +83,11 @@ public static class TenantsApiRegistration
                 .RequireAuthenticatedUser()
                 .RequireClaim(ClaimsTenantProvider.ClaimName));
 
+            options.AddPolicy(Policies.HouseholdAdult, policy => policy
+                .RequireAuthenticatedUser()
+                .RequireClaim(ClaimsTenantProvider.ClaimName)
+                .RequireRole(Roles.Adult, Roles.HouseholdAdmin));
+
             options.AddPolicy(Policies.HouseholdAdmin, policy => policy
                 .RequireAuthenticatedUser()
                 .RequireClaim(ClaimsTenantProvider.ClaimName)
@@ -112,8 +120,19 @@ public static class TenantsApiRegistration
 
         AddIdentityDirectory(services, configuration);
 
+        // Un code d'invitation ne se devine pas à la chaîne : quelques essais
+        // par minute et par compte.
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(SharingEndpoints.AcceptRateLimit, http => RateLimitPartition.GetFixedWindowLimiter(
+                http.User.FindFirstValue("sub") ?? "anonyme",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
+        });
+
         services.AddScoped<MemberService>();
         services.AddScoped<HouseholdService>();
+        services.AddScoped<SharingService>();
         services.AddProblemDetails();
 
         return services;
@@ -152,6 +171,15 @@ public static class TenantsApiRegistration
                 http.Timeout = TimeSpan.FromSeconds(catalogue.TimeoutSeconds);
             })
             .AddHttpMessageHandler<ServiceTokenHandler>();
+
+        // Même jeton encore : il porte aussi le rôle de partage.
+        services.AddHttpClient<ICatalogueSharing, CatalogueSharingClient>(http =>
+            {
+                http.BaseAddress = catalogue.BaseUrl
+                    ?? throw new InvalidOperationException("« Catalogue:BaseUrl » est requis.");
+                http.Timeout = TimeSpan.FromSeconds(15);
+            })
+            .AddHttpMessageHandler<ServiceTokenHandler>();
     }
 
     public static WebApplication UseTenantsApi(this WebApplication app)
@@ -170,6 +198,7 @@ public static class TenantsApiRegistration
         app.UseAuthentication();
         app.UseMiddleware<TenantResolutionMiddleware>();
         app.UseAuthorization();
+        app.UseRateLimiter();
 
         return app;
     }

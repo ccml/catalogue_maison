@@ -6,9 +6,10 @@ namespace Catalogue.Api.Infrastructure.Tenancy;
 /// <see cref="TenantId"/>. Placé juste après l'authentification, afin que la
 /// réponse soit un 401 franc plutôt qu'une erreur au moment d'ouvrir la base.
 /// <para>
-/// Seule exception : un endpoint marqué <see cref="ProvisioningEndpoint"/>,
-/// appelé par un jeton qui porte le rôle de provisionnement et
-/// <em>aucun</em> claim <c>tenant</c> — pas une valeur invalide, une absence.
+/// Seule exception : un endpoint marqué <see cref="ServiceEndpoint"/>,
+/// appelé par un jeton qui porte <em>le</em> rôle de service propre à cet
+/// endpoint et <em>aucun</em> claim <c>tenant</c> — pas une valeur invalide,
+/// une absence.
 /// </para>
 /// </summary>
 public sealed class TenantResolutionMiddleware(RequestDelegate next)
@@ -17,7 +18,7 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
     {
         if (context.User.Identity?.IsAuthenticated == true
             && !tenantProvider.TryGetCurrent(out _)
-            && !IsProvisioningServiceOnProvisioningEndpoint(context))
+            && !IsServiceOnItsEndpoint(context))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             context.Response.ContentType = "application/problem+json";
@@ -34,21 +35,27 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
         await next(context);
     }
 
-    private static bool IsProvisioningServiceOnProvisioningEndpoint(HttpContext context) =>
-        context.GetEndpoint()?.Metadata.GetMetadata<ProvisioningEndpoint>() is not null
-        && context.User.IsInRole(Roles.Provisioning)
+    private static bool IsServiceOnItsEndpoint(HttpContext context) =>
+        context.GetEndpoint()?.Metadata.GetMetadata<ServiceEndpoint>() is { } endpoint
+        && context.User.IsInRole(endpoint.Role)
         && !context.User.HasClaim(c => c.Type == ClaimsTenantProvider.ClaimName);
 }
 
 /// <summary>
-/// Marque un endpoint de provisionnement : le seul endroit où un jeton sans
-/// ménage peut passer, et seulement avec le rôle de provisionnement.
+/// Marque un endpoint de service à service : le seul endroit où un jeton
+/// sans ménage peut passer, et seulement avec le rôle de service qui lui
+/// revient. Le ménage y est désigné par l'URL, par un service qui a vérifié
+/// en amont qu'il en avait le droit.
 /// </summary>
-public sealed class ProvisioningEndpoint
+public sealed class ServiceEndpoint
 {
-    public static readonly ProvisioningEndpoint Instance = new();
+    /// <summary>Création et suppression du schéma d'un ménage.</summary>
+    public static readonly ServiceEndpoint Provisioning = new(Roles.Provisioning);
 
-    private ProvisioningEndpoint()
-    {
-    }
+    /// <summary>Lecture d'un catalogue partagé, demandes de prêt.</summary>
+    public static readonly ServiceEndpoint Sharing = new(Roles.Sharing);
+
+    private ServiceEndpoint(string role) => Role = role;
+
+    public string Role { get; }
 }

@@ -1,0 +1,69 @@
+<h1>Les prêts</h1>
+<p class="lede">
+  Les demandes des ménages avec qui vous partagez votre catalogue, et ce qui est prêté en ce
+  moment.
+</p>
+
+@if (problem(); as problem) {
+  <p class="notice notice-problem" role="alert">{{ problem.message }}</p>
+}
+
+@if (loading()) {
+  <p class="notice">Lecture des prêts…</p>
+} @else {
+  <section aria-labelledby="demandes">
+    <h2 id="demandes">Demandes en attente</h2>
+    @if (requests().length === 0) {
+      <p class="notice">Aucune demande en attente.</p>
+    } @else {
+      <ul class="loans">
+        @for (loan of requests(); track loan.id) {
+          <li class="loan" [attr.data-type]="loan.mediaType">
+            <app-icon class="type-icon" [name]="icons[loan.mediaType]" [label]="labels[loan.mediaType]" />
+            <div class="loan-main">
+              <span class="work">{{ loan.mediaTitle }}</span>
+              <span class="who">Demandé par {{ loan.borrowerName }}, le {{ since(loan.requestedAt) }}</span>
+            </div>
+            @if (auth.mayWrite()) {
+              <div class="actions">
+                <button type="button" [disabled]="busy() !== null" (click)="accept(loan)">Accepter</button>
+                <button type="button" [disabled]="busy() !== null" (click)="decline(loan)">Refuser</button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section aria-labelledby="en-cours">
+    <h2 id="en-cours">Prêtés en ce moment</h2>
+    @if (active().length === 0) {
+      <p class="notice">Rien n'est prêté.</p>
+    } @else {
+      <ul class="loans">
+        @for (loan of active(); track loan.id) {
+          <li class="loan" [attr.data-type]="loan.mediaType">
+            <app-icon class="type-icon" [name]="icons[loan.mediaType]" [label]="labels[loan.mediaType]" />
+            <div class="loan-main">
+              <span class="work">{{ loan.mediaTitle }}</span>
+              <span class="who">
+                Chez {{ loan.borrowerName }}
+                @if (loan.lentAt) {
+                  depuis le {{ since(loan.lentAt) }}
+                }
+              </span>
+            </div>
+            @if (auth.mayWrite()) {
+              <div class="actions">
+                <button type="button" [disabled]="busy() !== null" (click)="markReturned(loan)">
+                  Marquer revenu
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

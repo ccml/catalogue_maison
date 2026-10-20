@@ -1,4 +1,5 @@
 using Catalogue.Api.Domain;
+using Catalogue.Api.Features.Loans;
 using Catalogue.Api.Infrastructure;
 using Catalogue.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -39,16 +40,38 @@ public static class MediaEndpoints
         page = Math.Max(page, 1);
         size = Math.Clamp(size, 1, 200);
 
-        var query = db.Medias.AsNoTracking();
-
-        if (type is { } wantedType)
-        {
-            query = query.Where(m => m.Type == wantedType);
-        }
+        var query = Filtered(db.Medias.AsNoTracking(), type, q);
 
         if (lent is { } wantedLent)
         {
             query = query.Where(m => m.IsLent == wantedLent);
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+
+        var items = await Sorted(query, sort)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .Select(m => new MediaSummaryResponse(
+                m.Id, m.Type, m.Title, m.Creator, m.Year, m.Location, m.IsLent, m.AddedAt,
+                db.Loans
+                    .Where(l => l.MediaId == m.Id && l.Status == LoanStatus.Active)
+                    .Select(l => l.BorrowerName)
+                    .FirstOrDefault()))
+            .ToListAsync(cancellationToken);
+
+        return TypedResults.Ok(new PagedResponse<MediaSummaryResponse>(items, total, page, size));
+    }
+
+    /// <summary>
+    /// Filtre par type et recherche libre. Partagé avec la vue d'un catalogue
+    /// partagé, qui doit chercher comme le ménage lui-même.
+    /// </summary>
+    internal static IQueryable<Media> Filtered(IQueryable<Media> query, MediaType? type, string? q)
+    {
+        if (type is { } wantedType)
+        {
+            query = query.Where(m => m.Type == wantedType);
         }
 
         if (!string.IsNullOrWhiteSpace(q))
@@ -63,16 +86,7 @@ public static class MediaEndpoints
                 (m.Series != null && EF.Functions.ILike(m.Series, pattern)));
         }
 
-        var total = await query.CountAsync(cancellationToken);
-
-        var items = await Sorted(query, sort)
-            .Skip((page - 1) * size)
-            .Take(size)
-            .Select(m => new MediaSummaryResponse(
-                m.Id, m.Type, m.Title, m.Creator, m.Year, m.Location, m.IsLent, m.AddedAt))
-            .ToListAsync(cancellationToken);
-
-        return TypedResults.Ok(new PagedResponse<MediaSummaryResponse>(items, total, page, size));
+        return query;
     }
 
     /// <summary>
@@ -81,7 +95,7 @@ public static class MediaEndpoints
     /// Les fiches sans auteur ou sans série viennent après les autres, et
     /// non en tête.
     /// </summary>
-    private static IQueryable<Media> Sorted(IQueryable<Media> query, MediaSort sort) => sort switch
+    internal static IQueryable<Media> Sorted(IQueryable<Media> query, MediaSort sort) => sort switch
     {
         MediaSort.Title => query
             .OrderBy(m => m.Title)
@@ -113,7 +127,9 @@ public static class MediaEndpoints
         // n'existe tout simplement pas dans ce schéma.
         var media = await db.Medias.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
 
-        return media is null ? TypedResults.NotFound() : TypedResults.Ok(ToDetail(media));
+        return media is null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(ToDetail(media, await LentToAsync(db, media, cancellationToken)));
     }
 
     private static async Task<Results<Ok<MediaDetailResponse>, NotFound>> GetByIsbnAsync(
@@ -123,8 +139,23 @@ public static class MediaEndpoints
     {
         var media = await FindByIsbnAsync(db, isbn, cancellationToken);
 
-        return media is null ? TypedResults.NotFound() : TypedResults.Ok(ToDetail(media));
+        return media is null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(ToDetail(media, await LentToAsync(db, media, cancellationToken)));
     }
+
+    /// <summary>Emprunteur du prêt en cours, s'il y en a un.</summary>
+    internal static async Task<string?> LentToAsync(
+        CatalogueDbContext db,
+        Media media,
+        CancellationToken cancellationToken) =>
+        media.IsLent
+            ? await db.Loans
+                .AsNoTracking()
+                .Where(l => l.MediaId == media.Id && l.Status == LoanStatus.Active)
+                .Select(l => l.BorrowerName)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
 
     /// <summary>
     /// Média du ménage portant cet ISBN, sous sa forme 10 ou 13. Partagé par
@@ -240,7 +271,7 @@ public static class MediaEndpoints
 
         await db.SaveChangesAsync(cancellationToken);
 
-        return TypedResults.Ok(ToDetail(media));
+        return TypedResults.Ok(ToDetail(media, await LentToAsync(db, media, cancellationToken)));
     }
 
     private static async Task<Results<NoContent, NotFound>> DeleteAsync(
@@ -262,10 +293,16 @@ public static class MediaEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<Results<NoContent, NotFound>> SetLentAsync(
+    /// <summary>
+    /// Prêt ou retour saisi par le ménage lui-même, sans passer par une
+    /// demande. Passe par les mêmes transitions qu'un prêt accepté : prêter
+    /// ici rend sans objet les demandes en attente sur ce média.
+    /// </summary>
+    private static async Task<Results<NoContent, NotFound, ValidationProblem>> SetLentAsync(
         Guid id,
         SetLentRequest request,
         CatalogueDbContext db,
+        TimeProvider clock,
         CancellationToken cancellationToken)
     {
         var media = await db.Medias.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
@@ -274,13 +311,60 @@ public static class MediaEndpoints
             return TypedResults.NotFound();
         }
 
-        media.SetLent(request.IsLent);
-        await db.SaveChangesAsync(cancellationToken);
+        if (media.IsLent == request.IsLent)
+        {
+            return TypedResults.NoContent();
+        }
+
+        var now = clock.GetUtcNow();
+
+        try
+        {
+            if (request.IsLent)
+            {
+                db.Loans.Add(Loan.Lend(media, request.BorrowerName, now));
+                await LoanRules.SupersedePendingAsync(db, media.Id, now, cancellationToken);
+            }
+            else
+            {
+                var active = await db.Loans
+                    .FirstOrDefaultAsync(l => l.MediaId == media.Id && l.Status == LoanStatus.Active, cancellationToken);
+
+                if (active is null)
+                {
+                    // Prêté sans prêt en cours ne devrait pas exister — la
+                    // migration a doté chaque média prêté d'un prêt. Si cela
+                    // arrive, le retour répare plutôt que de rester bloqué.
+                    media.MarkReturned();
+                }
+                else
+                {
+                    active.Return(media, now);
+                }
+            }
+        }
+        catch (LoanException exception)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["loan"] = [exception.Message]
+            });
+        }
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (LoanRules.IsSecondActiveLoan(exception))
+        {
+            // Une acceptation concurrente est passée la première : le média
+            // est prêté, ce que demandait justement l'appel.
+        }
 
         return TypedResults.NoContent();
     }
 
-    private static MediaDetailResponse ToDetail(Media media) => new(
+    private static MediaDetailResponse ToDetail(Media media, string? lentTo = null) => new(
         media.Id,
         media.Type,
         media.Title,
@@ -289,5 +373,6 @@ public static class MediaEndpoints
         media.Location,
         media.IsLent,
         media.AddedAt,
-        media.Specifics);
+        media.Specifics,
+        lentTo);
 }

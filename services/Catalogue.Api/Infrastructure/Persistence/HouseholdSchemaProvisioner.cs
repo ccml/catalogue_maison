@@ -5,10 +5,9 @@ using Npgsql;
 namespace Catalogue.Api.Infrastructure.Persistence;
 
 /// <summary>
-/// Crée le schéma d'un ménage et y joue toutes les migrations. C'est le
-/// « chemin d'administration explicite » : le seul endroit où un
-/// <see cref="CatalogueDbContext"/> est construit pour un ménage qui ne
-/// vient pas du jeton.
+/// Crée le schéma d'un ménage et y joue toutes les migrations. Il passe par
+/// le « chemin d'administration explicite » (<see cref="HouseholdContextFactory"/>) :
+/// le ménage ne vient pas du jeton.
 /// <para>
 /// Idempotent : rejoué sur un schéma existant, il n'applique que les
 /// migrations manquantes. Les deux étapes passent par les mêmes chemins que
@@ -20,6 +19,7 @@ public sealed class HouseholdSchemaProvisioner(
     IConfiguration configuration,
     TenantConnectionStringFactory connectionStrings,
     SchemaVersionRegistry versions,
+    HouseholdContextFactory contexts,
     ILogger<HouseholdSchemaProvisioner> logger)
 {
     public async Task<int> ProvisionAsync(TenantId tenant, CancellationToken cancellationToken)
@@ -38,13 +38,7 @@ public sealed class HouseholdSchemaProvisioner(
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
 
-        var options = new DbContextOptionsBuilder<CatalogueDbContext>()
-            .UseNpgsql(connectionStrings.For(tenant), npgsql => npgsql
-                .MigrationsHistoryTable(CatalogueDbContext.MigrationsHistoryTable))
-            .UseSnakeCaseNamingConvention()
-            .Options;
-
-        await using var db = new CatalogueDbContext(options, tenant);
+        await using var db = contexts.Create(tenant);
 
         var pending = (await db.Database.GetPendingMigrationsAsync(cancellationToken)).Count();
         await db.Database.MigrateAsync(cancellationToken);

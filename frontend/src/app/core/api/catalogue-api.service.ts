@@ -8,6 +8,8 @@ import type {
   FilmDraftResult,
   FilmSearchResult,
   ImportReport,
+  Loan,
+  LoanStatus,
   MediaDetail,
   MediaQuery,
   MediaSummary,
@@ -102,8 +104,31 @@ export class CatalogueApi {
     return this.http.delete<void>(`${this.baseUrl}/medias/${id}`);
   }
 
-  setLent(id: string, isLent: boolean): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/medias/${id}/lent`, { isLent });
+  /** Prêt ou retour saisi par le ménage. Sans nom, l'emprunteur est « Inconnu ». */
+  setLent(id: string, isLent: boolean, borrowerName?: string | null): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/medias/${id}/lent`, {
+      isLent,
+      borrowerName: borrowerName?.trim() || null,
+    });
+  }
+
+  /** Sans statut : les demandes en attente et les prêts en cours. */
+  loans(status?: LoanStatus): Observable<readonly Loan[]> {
+    const params = status ? new HttpParams().set('status', status) : undefined;
+    return this.http.get<readonly Loan[]>(`${this.baseUrl}/loans`, { params });
+  }
+
+  /** Le média part ; les autres demandes en attente sur ce média sont refusées. */
+  acceptLoan(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/loans/${id}/accept`, null);
+  }
+
+  declineLoan(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/loans/${id}/decline`, null);
+  }
+
+  returnLoan(id: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/loans/${id}/return`, null);
   }
 
   /** Tout le catalogue du ménage, en un fichier. */

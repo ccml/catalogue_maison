@@ -54,6 +54,8 @@ public sealed class TransferTests(CatalogueApiFixture fixture) : IClassFixture<C
 
         var kindOfBlue = apres.Single(m => m.Title == "Kind of Blue");
         Assert.True(kindOfBlue.IsLent);
+        // Le fichier ne porte que « prêté » : l'emprunteur arrive inconnu.
+        Assert.Equal("Inconnu", kindOfBlue.LentTo);
         Assert.Equal(["So What", "Blue in Green"], Assert.IsType<MusicSpecifics>(kindOfBlue.Specifics).Tracks);
     }
 

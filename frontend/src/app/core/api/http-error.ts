@@ -14,6 +14,7 @@ export type ApiProblemKind =
   | 'interdit'
   | 'introuvable'
   | 'schemaEnRetard'
+  | 'conflit'
   | 'autre';
 
 export interface ApiProblem {
@@ -89,6 +90,14 @@ export function describeHttpError(error: unknown): ApiProblem {
         message: 'Introuvable dans le catalogue du ménage.',
         terminal: false,
       };
+    case 409:
+      // L'état a changé entre l'affichage et le geste — une demande déjà
+      // traitée, un média prêté entre-temps. L'API dit lequel.
+      return {
+        kind: 'conflit',
+        message: readProblemDetail(error) ?? "Cette action n'est plus possible : rechargez la page.",
+        terminal: false,
+      };
     case 503:
       return {
         kind: 'autre',
@@ -102,6 +111,17 @@ export function describeHttpError(error: unknown): ApiProblem {
         terminal: false,
       };
   }
+}
+
+function readProblemDetail(error: HttpErrorResponse): string | null {
+  const body: unknown = error.error;
+
+  if (typeof body === 'object' && body !== null && 'detail' in body) {
+    const detail = (body as { detail?: unknown }).detail;
+    return typeof detail === 'string' && detail.length > 0 ? detail : null;
+  }
+
+  return null;
 }
 
 /**

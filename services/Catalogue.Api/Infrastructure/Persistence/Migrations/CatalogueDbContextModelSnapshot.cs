@@ -22,6 +22,62 @@ namespace Catalogue.Api.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Catalogue.Api.Domain.Loan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BorrowerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("borrower_name");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<DateTimeOffset?>("LentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lent_at");
+
+                    b.Property<Guid>("MediaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("media_id");
+
+                    b.Property<DateTimeOffset?>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<Guid?>("ShareId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("share_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_loans");
+
+                    b.HasIndex("MediaId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_loans_media_id_active")
+                        .HasFilter("status = 'Active'");
+
+                    b.HasIndex("MediaId", "Status")
+                        .HasDatabaseName("ix_loans_media_id_status");
+
+                    b.HasIndex("ShareId", "Status")
+                        .HasDatabaseName("ix_loans_share_id_status");
+
+                    b.ToTable("loans", (string)null);
+                });
+
             modelBuilder.Entity("Catalogue.Api.Domain.Media", b =>
                 {
                     b.Property<Guid>("Id")
@@ -113,6 +169,16 @@ namespace Catalogue.Api.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_medias_series_volume");
 
                     b.ToTable("medias", (string)null);
+                });
+
+            modelBuilder.Entity("Catalogue.Api.Domain.Loan", b =>
+                {
+                    b.HasOne("Catalogue.Api.Domain.Media", null)
+                        .WithMany()
+                        .HasForeignKey("MediaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_loans_medias_media_id");
                 });
 #pragma warning restore 612, 618
         }

@@ -18,6 +18,14 @@ public static class Policies
     /// <c>tenant</c>.
     /// </summary>
     public const string Provisioning = "provisioning";
+
+    /// <summary>
+    /// Lire le catalogue d'un ménage pour un ménage partenaire, et y déposer
+    /// des demandes de prêt. Réservé au compte de service de Tenants.Api,
+    /// qui a vérifié le partage : rôle de partage, et <strong>aucun</strong>
+    /// claim <c>tenant</c>.
+    /// </summary>
+    public const string Sharing = "sharing";
 }
 
 /// <summary>Rôles de realm Keycloak, versionnés dans <c>/keycloak</c>.</summary>
@@ -29,4 +37,7 @@ public static class Roles
 
     /// <summary>Attribué au seul compte de service de Tenants.Api, jamais à une personne.</summary>
     public const string Provisioning = "provisionnement";
+
+    /// <summary>Attribué au seul compte de service de Tenants.Api, jamais à une personne.</summary>
+    public const string Sharing = "partage";
 }

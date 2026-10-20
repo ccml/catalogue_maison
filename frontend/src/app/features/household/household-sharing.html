@@ -1,0 +1,94 @@
+<h1>Partage du catalogue</h1>
+<p class="lede">
+  Partagez votre catalogue avec un autre ménage pour qu'il puisse le consulter et vous demander un
+  prêt. Le partage est à sens unique : pour voir aussi le sien, il vous faut son invitation.
+</p>
+
+@if (problem(); as problem) {
+  <p class="notice notice-problem" role="alert">{{ problem.message }}</p>
+}
+@if (confirmation(); as confirmation) {
+  <p class="notice notice-done" role="status">{{ confirmation }}</p>
+}
+
+<section aria-labelledby="inviter">
+  <h2 id="inviter">Inviter un ménage</h2>
+  <p class="help">
+    Créez un code et transmettez-le vous-même à la personne qui administre l'autre ménage. Il
+    sert une seule fois, pendant 7 jours.
+  </p>
+
+  @if (created(); as invitation) {
+    <div class="code" role="status">
+      <span class="code-value">{{ invitation.code }}</span>
+      <button type="button" (click)="copy(invitation.code)">{{ copied() ? 'Copié' : 'Copier' }}</button>
+      <p class="help">Notez-le maintenant : il ne sera plus affiché.</p>
+    </div>
+  }
+
+  <button type="button" class="primary" [disabled]="busy()" (click)="invite()">Créer un code d'invitation</button>
+
+  @if (invitations().length > 0) {
+    <ul class="rows">
+      @for (invitation of invitations(); track invitation.id) {
+        <li>
+          <span>Invitation en attente, valable jusqu'au {{ date(invitation.expiresAt) }}</span>
+          <button type="button" class="link" [disabled]="busy()" (click)="cancelInvitation(invitation)">Annuler</button>
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+<section aria-labelledby="accepter">
+  <h2 id="accepter">Accepter une invitation</h2>
+  <form class="accept" (submit)="$event.preventDefault(); accept(code.value); code.value = ''">
+    <label for="code-invitation">Code reçu d'un autre ménage</label>
+    <input
+      #code
+      id="code-invitation"
+      type="text"
+      autocomplete="off"
+      autocapitalize="characters"
+      spellcheck="false"
+      placeholder="XXXXX-XXXXX"
+    />
+    <button type="submit" class="primary" [disabled]="busy()">Accepter</button>
+  </form>
+</section>
+
+@if (!loading()) {
+  <section aria-labelledby="accordes">
+    <h2 id="accordes">Ménages qui voient notre catalogue</h2>
+    @if (granted().length === 0) {
+      <p class="help">Aucun pour l'instant.</p>
+    } @else {
+      <ul class="rows">
+        @for (share of granted(); track share.id) {
+          <li>
+            <span class="name">{{ share.householdName }}</span>
+            <span class="since">depuis le {{ date(share.since) }}</span>
+            <button type="button" class="link" [disabled]="busy()" (click)="revoke(share)">Retirer le partage</button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section aria-labelledby="recus">
+    <h2 id="recus">Catalogues que nous voyons</h2>
+    @if (received().length === 0) {
+      <p class="help">Aucun pour l'instant.</p>
+    } @else {
+      <ul class="rows">
+        @for (share of received(); track share.id) {
+          <li>
+            <a class="name" [routerLink]="['/partages', share.id]">{{ share.householdName }}</a>
+            <span class="since">depuis le {{ date(share.since) }}</span>
+            <button type="button" class="link" [disabled]="busy()" (click)="renounce(share)">Ne plus le voir</button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

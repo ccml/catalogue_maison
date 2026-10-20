@@ -92,14 +92,15 @@ public sealed class MediaTests
     }
 
     [Fact]
-    public void Une_fiche_importee_garde_sa_date_d_ajout_et_son_pret()
+    public void Une_fiche_importee_garde_sa_date_d_ajout_et_arrive_non_pretee()
     {
         var ajout = new DateTimeOffset(2019, 3, 2, 9, 30, 0, TimeSpan.Zero);
 
-        var media = Media.Import(MediaType.Film, "Alien", null, 1979, "Salon", true, null, ajout, Maintenant);
+        var media = Media.Import(MediaType.Film, "Alien", null, 1979, "Salon", null, ajout, Maintenant);
 
         Assert.Equal(ajout, media.AddedAt);
-        Assert.True(media.IsLent);
+        // L'état « prêté » passe par un prêt, comme partout ailleurs.
+        Assert.False(media.IsLent);
     }
 
     [Fact]
@@ -109,7 +110,7 @@ public sealed class MediaTests
         // fiche était valide, elle doit revenir telle quelle.
         var ajout = new DateTimeOffset(2019, 3, 2, 9, 30, 0, TimeSpan.Zero);
 
-        var media = Media.Import(MediaType.Film, "Alien", null, 2025, null, false, null, ajout, Maintenant);
+        var media = Media.Import(MediaType.Film, "Alien", null, 2025, null, null, ajout, Maintenant);
 
         Assert.Equal(2025, media.Year);
     }
@@ -118,7 +119,7 @@ public sealed class MediaTests
     public void A_l_import_une_date_d_ajout_future_est_refusee()
     {
         var exception = Assert.Throws<MediaValidationException>(() => Media.Import(
-            MediaType.Film, "Alien", null, null, null, false, null, Maintenant.AddDays(1), Maintenant));
+            MediaType.Film, "Alien", null, null, null, null, Maintenant.AddDays(1), Maintenant));
 
         Assert.Contains("La date d'ajout est dans le futur.", exception.Errors);
     }
@@ -126,7 +127,7 @@ public sealed class MediaTests
     [Fact]
     public void A_l_import_une_fiche_sans_date_d_ajout_est_datee_du_jour()
     {
-        var media = Media.Import(MediaType.Film, "Alien", null, null, null, false, null, null, Maintenant);
+        var media = Media.Import(MediaType.Film, "Alien", null, null, null, null, null, Maintenant);
 
         Assert.Equal(Maintenant, media.AddedAt);
     }

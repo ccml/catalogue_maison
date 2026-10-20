@@ -86,6 +86,8 @@ export interface MediaSummary {
   readonly location?: string | null;
   readonly isLent: boolean;
   readonly addedAt: string;
+  /** Emprunteur du prêt en cours, quand `isLent`. */
+  readonly lentTo?: string | null;
 }
 
 export interface MediaDetail extends MediaSummary {
@@ -324,3 +326,24 @@ export const duplicateReasonLabels: Readonly<Record<DuplicateReason, string>> = 
   SameTitle: 'même type, titre et auteur qu’une fiche du catalogue',
   RepeatedInFile: 'déjà plus haut dans le fichier',
 };
+
+/**
+ * `Requested` : demande d'un ménage partenaire, en attente. `Active` : le
+ * média est chez l'emprunteur. Les trois autres closent le prêt ou la demande.
+ */
+export type LoanStatus = 'Requested' | 'Active' | 'Returned' | 'Declined' | 'Cancelled';
+
+/** Un prêt ou une demande, vu par le ménage prêteur. */
+export interface Loan {
+  readonly id: string;
+  readonly mediaId: string;
+  readonly mediaType: MediaType;
+  readonly mediaTitle: string;
+  readonly status: LoanStatus;
+  readonly borrowerName: string;
+  /** Vrai pour une demande arrivée par un partage avec un autre ménage. */
+  readonly fromSharedHousehold: boolean;
+  readonly requestedAt?: string | null;
+  readonly lentAt?: string | null;
+  readonly closedAt?: string | null;
+}

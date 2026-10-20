@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Tenants.Api.Domain;
 using Tenants.Api.Features.Members;
+using Tenants.Api.Features.Sharing;
 using Tenants.Api.Infrastructure.Catalogue;
 using Tenants.Api.Infrastructure.Keycloak;
 using Tenants.Api.Infrastructure.Persistence;
@@ -29,6 +30,7 @@ public sealed class HouseholdService(
     ICatalogueProvisioning catalogue,
     IIdentityDirectory directory,
     MemberService members,
+    SharingService sharing,
     TimeProvider clock)
 {
     public async Task<IReadOnlyList<HouseholdResponse>> ListAsync(CancellationToken cancellationToken) =>
@@ -230,6 +232,10 @@ public sealed class HouseholdService(
             await directory.DeleteAsync(account.Id, cancellationToken);
         }
 
+        // Les partages, dans les deux sens : un ménage purgé ne partage plus
+        // rien et ne consulte plus rien. Les prêts déjà consignés chez un
+        // ménage partenaire y restent, sous le libellé copié à la demande.
+        await sharing.ForgetHouseholdAsync(id, cancellationToken);
         await db.Members.Where(m => m.HouseholdId == id.Value).ExecuteDeleteAsync(cancellationToken);
         db.Households.Remove(household);
         await db.SaveChangesAsync(cancellationToken);

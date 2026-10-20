@@ -17,12 +17,15 @@
         <a routerLink="/catalogue" routerLinkActive="current" [routerLinkActiveOptions]="{ exact: true }">
           <app-icon name="collection" />Tout le catalogue
         </a>
+        <a routerLink="/catalogue/prets" routerLinkActive="current"><app-icon name="lent" />Prêts</a>
         @if (auth.mayWrite()) {
           <a routerLink="/catalogue/ajouter" routerLinkActive="current"><app-icon name="add" />Ajouter</a>
           <a routerLink="/catalogue/export-import" routerLinkActive="current"><app-icon name="storage" />Export / import</a>
         }
+        <a routerLink="/partages" routerLinkActive="current"><app-icon name="home" />Partagés avec nous</a>
         @if (auth.mayAdministerHousehold()) {
-          <a routerLink="/menage" routerLinkActive="current"><app-icon name="settings" />Membres</a>
+          <a routerLink="/menage" routerLinkActive="current" [routerLinkActiveOptions]="{ exact: true }"><app-icon name="settings" />Membres</a>
+          <a routerLink="/menage/partage" routerLinkActive="current"><app-icon name="collection" />Partage</a>
         }
       </nav>
     } @else if (auth.mayAdministerPlatform()) {

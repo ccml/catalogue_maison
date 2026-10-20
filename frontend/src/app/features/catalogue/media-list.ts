@@ -132,17 +132,40 @@ export class MediaList implements OnInit {
     }
   }
 
-  protected async toggleLent(media: MediaSummary): Promise<void> {
-    const wanted = !media.isLent;
+  /** Média dont on saisit l'emprunteur, s'il y en a un. */
+  protected readonly lending = signal<string | null>(null);
 
+  protected startLending(media: MediaSummary): void {
+    this.lending.set(media.id);
+  }
+
+  protected cancelLending(): void {
+    this.lending.set(null);
+  }
+
+  /** Prête le média ; sans nom, l'emprunteur est « Inconnu ». */
+  protected async lend(media: MediaSummary, borrowerName: string): Promise<void> {
     try {
-      await firstValueFrom(this.api.setLent(media.id, wanted));
-      this.items.update((items) =>
-        items.map((item) => (item.id === media.id ? { ...item, isLent: wanted } : item)),
-      );
+      await firstValueFrom(this.api.setLent(media.id, true, borrowerName));
+      const lentTo = borrowerName.trim() || 'Inconnu';
+      this.replace(media.id, { isLent: true, lentTo });
+      this.lending.set(null);
     } catch (error) {
       this.probleme.set(describeHttpError(error));
     }
+  }
+
+  protected async markReturned(media: MediaSummary): Promise<void> {
+    try {
+      await firstValueFrom(this.api.setLent(media.id, false));
+      this.replace(media.id, { isLent: false, lentTo: null });
+    } catch (error) {
+      this.probleme.set(describeHttpError(error));
+    }
+  }
+
+  private replace(id: string, change: Partial<MediaSummary>): void {
+    this.items.update((items) => items.map((item) => (item.id === id ? { ...item, ...change } : item)));
   }
 
   /** Reconstruit la liste depuis sa première page. */

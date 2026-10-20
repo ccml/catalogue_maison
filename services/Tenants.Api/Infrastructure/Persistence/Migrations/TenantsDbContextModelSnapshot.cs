@@ -90,6 +90,86 @@ namespace Tenants.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("members", (string)null);
                 });
 
+            modelBuilder.Entity("Tenants.Api.Infrastructure.Persistence.Share", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("OwnerHouseholdId")
+                        .IsRequired()
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("owner_household_id");
+
+                    b.Property<string>("ViewerHouseholdId")
+                        .IsRequired()
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("viewer_household_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shares");
+
+                    b.HasIndex("ViewerHouseholdId")
+                        .HasDatabaseName("ix_shares_viewer_household_id");
+
+                    b.HasIndex("OwnerHouseholdId", "ViewerHouseholdId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_shares_owner_household_id_viewer_household_id");
+
+                    b.ToTable("shares", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shares_not_self", "owner_household_id <> viewer_household_id");
+                        });
+                });
+
+            modelBuilder.Entity("Tenants.Api.Infrastructure.Persistence.ShareInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("code_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("OwnerHouseholdId")
+                        .IsRequired()
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("owner_household_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_share_invitations");
+
+                    b.HasIndex("CodeHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_share_invitations_code_hash");
+
+                    b.HasIndex("OwnerHouseholdId")
+                        .HasDatabaseName("ix_share_invitations_owner_household_id");
+
+                    b.ToTable("share_invitations", (string)null);
+                });
+
             modelBuilder.Entity("Tenants.Api.Infrastructure.Persistence.Member", b =>
                 {
                     b.HasOne("Tenants.Api.Infrastructure.Persistence.Household", null)
@@ -98,6 +178,33 @@ namespace Tenants.Api.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_members_households_household_id");
+                });
+
+            modelBuilder.Entity("Tenants.Api.Infrastructure.Persistence.Share", b =>
+                {
+                    b.HasOne("Tenants.Api.Infrastructure.Persistence.Household", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerHouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_shares_households_owner_household_id");
+
+                    b.HasOne("Tenants.Api.Infrastructure.Persistence.Household", null)
+                        .WithMany()
+                        .HasForeignKey("ViewerHouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_shares_households_viewer_household_id");
+                });
+
+            modelBuilder.Entity("Tenants.Api.Infrastructure.Persistence.ShareInvitation", b =>
+                {
+                    b.HasOne("Tenants.Api.Infrastructure.Persistence.Household", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerHouseholdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_share_invitations_households_owner_household_id");
                 });
 #pragma warning restore 612, 618
         }

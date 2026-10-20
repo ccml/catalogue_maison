@@ -1,0 +1,134 @@
+h1 {
+  margin: 2.5rem 0 0.5rem;
+}
+
+h2 {
+  margin: 2.5rem 0 0.75rem;
+}
+
+.lede,
+.help {
+  color: var(--ink-soft);
+  max-width: var(--measure);
+}
+
+.lede {
+  margin: 0 0 1rem;
+}
+
+.help {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+}
+
+.notice {
+  margin: 1rem 0;
+}
+
+.notice-problem {
+  color: var(--ochre);
+}
+
+.notice-done {
+  color: var(--pine);
+}
+
+.primary {
+  background: var(--pine);
+  color: var(--paper);
+  border: 0;
+  border-radius: 2px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+/* Le code se lit et se dicte : grand, à chasse fixe. */
+.code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+  padding: 1rem;
+  border: 1px solid var(--shelf);
+  background: var(--paper-raised);
+}
+
+.code-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+}
+
+.code button,
+.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--pine);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.code .help {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.accept {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 1rem;
+}
+
+.accept label {
+  flex-basis: 100%;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.accept input {
+  background: var(--paper-raised);
+  border: 1px solid var(--shelf);
+  border-radius: 2px;
+  padding: 0.45rem 0.6rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+  width: 14rem;
+  max-width: 100%;
+}
+
+.rows {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--shelf);
+}
+
+.rows li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--shelf);
+}
+
+.name {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.since {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}

@@ -42,6 +42,10 @@
       {
         "name": "provisionnement",
         "description": "Cree le schema d'un menage dans Catalogue.Api. Reserve au compte de service de tenants-api, jamais a une personne"
+      },
+      {
+        "name": "partage",
+        "description": "Lit le catalogue d'un menage pour un menage partenaire, et y depose des demandes de pret. Reserve au compte de service de tenants-api, jamais a une personne"
       }
     ]
   },
@@ -537,7 +541,8 @@
       "enabled": true,
       "serviceAccountClientId": "tenants-api",
       "realmRoles": [
-        "provisionnement"
+        "provisionnement",
+        "partage"
       ],
       "clientRoles": {
         "realm-management": [

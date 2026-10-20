@@ -42,14 +42,18 @@ main {
   margin-block-start: -0.08em;
 }
 
+/* Les entrées passent à la ligne plutôt que de déborder : chacune reste
+   d'un seul tenant, c'est la rangée qui se replie. */
 nav {
   display: flex;
-  gap: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
   font-size: 0.9375rem;
   margin-inline-end: auto;
 }
 
 nav a {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;

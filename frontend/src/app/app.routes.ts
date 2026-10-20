@@ -50,6 +50,13 @@ export const routes: Routes = [
       import('./features/catalogue/catalogue-transfer').then((m) => m.CatalogueTransfer),
   },
   {
+    // Avant « catalogue/:id », pour la même raison.
+    path: 'catalogue/prets',
+    title: 'Prêts',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/catalogue/loans').then((m) => m.Loans),
+  },
+  {
     path: 'catalogue/:id',
     title: 'Corriger une fiche',
     canActivate: [authGuard],
@@ -63,6 +70,30 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/household/household-members').then((m) => m.HouseholdMembers),
+  },
+  {
+    // Réservé à l'administrateur du ménage, comme « menage ».
+    path: 'menage/partage',
+    title: 'Partage du catalogue',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/household/household-sharing').then((m) => m.HouseholdSharing),
+  },
+  {
+    // Les catalogues d'autres ménages partagés avec le nôtre. Tenants.Api
+    // vérifie à chaque appel que le partage est bien accordé à notre ménage.
+    path: 'partages',
+    title: 'Partagés avec nous',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/sharing/shared-catalogues').then((m) => m.SharedCatalogues),
+  },
+  {
+    path: 'partages/:shareId',
+    title: 'Catalogue partagé',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/sharing/shared-catalogue').then((m) => m.SharedCatalogue),
   },
   {
     // Réservé à l'opérateur de la plateforme. Comme pour « menage », le
