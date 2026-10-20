@@ -27,6 +27,7 @@ public static class MemberEndpoints
             SetActiveAsync(id, false, http, tenants, members, ct));
         group.MapPost("/{id:guid}/reactivate", (Guid id, HttpContext http, ITenantProvider tenants, MemberService members, CancellationToken ct) =>
             SetActiveAsync(id, true, http, tenants, members, ct));
+        group.MapDelete("/{id:guid}", DeleteAsync);
 
         return group;
     }
@@ -112,6 +113,13 @@ public static class MemberEndpoints
         MemberService members,
         CancellationToken cancellationToken) =>
         TypedResults.Ok(await members.SetActiveAsync(CallerOf(http, tenants), id, active, cancellationToken));
+
+    private static async Task<NoContent> DeleteAsync(
+        Guid id, HttpContext http, ITenantProvider tenants, MemberService members, CancellationToken cancellationToken)
+    {
+        await members.DeleteAsync(CallerOf(http, tenants), id, cancellationToken);
+        return TypedResults.NoContent();
+    }
 
     /// <summary>
     /// Le ménage vient du claim <c>tenant</c>, le compte du claim <c>sub</c> :

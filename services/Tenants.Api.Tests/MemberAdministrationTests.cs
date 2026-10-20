@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Tenants.Api.Domain;
 using Tenants.Api.Features.Members;
+using Tenants.Api.Infrastructure.Persistence;
 using Xunit;
 
 namespace Tenants.Api.Tests;
@@ -182,6 +183,102 @@ public sealed class MemberAdministrationTests(TenantsApiFixture fixture) : IClas
         {
             Assert.Null((await db.Members.SingleAsync(m => m.Subject == created.Id)).DeactivatedAt);
         }
+    }
+
+    /// <summary>Un membre de A désactivé et inscrit au registre, prêt à être supprimé.</summary>
+    private async Task<Guid> DeactivatedMemberOfAAsync()
+    {
+        var theo = fixture.Directory.Seed("theo", TenantsApiFixture.HouseholdA, Roles.Child);
+        fixture.Directory[theo].Enabled = false;
+
+        await using var db = fixture.CreateDbContext();
+        db.Members.Add(new Member
+        {
+            Subject = theo,
+            HouseholdId = TenantsApiFixture.HouseholdA,
+            Username = "theo",
+            RegisteredAt = DateTimeOffset.UtcNow,
+            DeactivatedAt = DateTimeOffset.UtcNow
+        });
+        await db.SaveChangesAsync();
+        return theo;
+    }
+
+    [Fact]
+    public async Task Supprimer_un_compte_desactive_retire_le_compte_puis_l_entree_du_registre()
+    {
+        var (_, client) = await AdminOfAAsync();
+        var theo = await DeactivatedMemberOfAAsync();
+
+        var response = await client.DeleteAsync($"/members/{theo}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Null(fixture.Directory.ByUsername("theo"));
+        await using var db = fixture.CreateDbContext();
+        Assert.False(await db.Members.AnyAsync(m => m.Subject == theo));
+    }
+
+    [Fact]
+    public async Task Un_compte_actif_ne_peut_pas_etre_supprime()
+    {
+        var (_, client) = await AdminOfAAsync();
+        var theo = await DeactivatedMemberOfAAsync();
+        fixture.Directory[theo].Enabled = true;
+
+        var response = await client.DeleteAsync($"/members/{theo}");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.NotNull(fixture.Directory.ByUsername("theo"));
+        await using var db = fixture.CreateDbContext();
+        Assert.True(await db.Members.AnyAsync(m => m.Subject == theo));
+    }
+
+    [Fact]
+    public async Task L_administrateur_ne_peut_pas_supprimer_son_propre_compte()
+    {
+        var (admin, client) = await AdminOfAAsync();
+        // Même désactivé par ailleurs, son propre compte reste hors d'atteinte.
+        fixture.Directory[admin].Enabled = false;
+
+        var response = await client.DeleteAsync($"/members/{admin}");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.NotNull(fixture.Directory.ByUsername("alice"));
+    }
+
+    [Fact]
+    public async Task Une_panne_de_keycloak_laisse_le_compte_et_le_registre_intacts()
+    {
+        var (_, client) = await AdminOfAAsync();
+        var theo = await DeactivatedMemberOfAAsync();
+        fixture.Directory.FailNextDelete = true;
+
+        var response = await client.DeleteAsync($"/members/{theo}");
+
+        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+        Assert.NotNull(fixture.Directory.ByUsername("theo"));
+        await using var db = fixture.CreateDbContext();
+        Assert.True(await db.Members.AnyAsync(m => m.Subject == theo));
+    }
+
+    [Fact]
+    public async Task Une_suppression_interrompue_apres_keycloak_se_rejoue()
+    {
+        var (_, client) = await AdminOfAAsync();
+        var theo = await DeactivatedMemberOfAAsync();
+        // Keycloak a supprimé le compte, le registre n'a pas suivi.
+        await fixture.Directory.DeleteAsync(theo, CancellationToken.None);
+
+        var replay = await client.DeleteAsync($"/members/{theo}");
+
+        Assert.Equal(HttpStatusCode.NoContent, replay.StatusCode);
+        await using (var db = fixture.CreateDbContext())
+        {
+            Assert.False(await db.Members.AnyAsync(m => m.Subject == theo));
+        }
+
+        // Plus rien à reprendre : le membre est introuvable.
+        Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync($"/members/{theo}")).StatusCode);
     }
 
     [Fact]

@@ -111,6 +111,11 @@
             <button type="button" [disabled]="busy() !== null" (click)="toggleActive(member)">
               {{ member.enabled ? 'Désactiver' : 'Réactiver' }}
             </button>
+            @if (!member.enabled) {
+              <button type="button" [disabled]="busy() !== null" (click)="deleteMember(member)">
+                Supprimer
+              </button>
+            }
           }
         </div>
 

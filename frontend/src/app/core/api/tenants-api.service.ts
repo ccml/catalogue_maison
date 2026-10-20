@@ -63,6 +63,11 @@ export class TenantsApi {
     return this.http.post<Member>(`${this.baseUrl}/members/${id}/reactivate`, null);
   }
 
+  /** Supprime définitivement un compte déjà désactivé : Keycloak, puis le registre. */
+  deleteMember(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/members/${id}`);
+  }
+
   /** Écarts entre Keycloak et le registre. L'API ne corrige rien d'elle-même. */
   inconsistencies(): Observable<Inconsistencies> {
     return this.http.get<Inconsistencies>(`${this.baseUrl}/members/inconsistencies`);

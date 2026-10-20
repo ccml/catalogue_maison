@@ -3,33 +3,40 @@
   min-height: 100dvh;
 }
 
+/* Deux étages : la marque et le compte, puis les onglets posés sur une
+ * étagère — le filet épais qui ferme l'en-tête. L'onglet courant prend la
+ * couleur de la page et mord sur l'étagère, comme un livre debout. */
 .masthead {
-  border-bottom: 1px solid var(--shelf);
   background: var(--paper-raised);
+  border-bottom: 3px solid var(--ink);
 }
 
-.masthead-inner,
+.masthead-top,
+.shelf-row,
+.subnav,
 main {
   max-width: 54rem;
   margin: 0 auto;
   padding-inline: 1.25rem;
 }
 
-.masthead-inner {
+.masthead-top {
   display: flex;
-  align-items: baseline;
-  gap: 1.5rem;
-  padding-block: 0.9rem;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 1.1rem 0.85rem;
 }
 
 .wordmark {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  margin-inline-end: auto;
   font-family: var(--serif);
-  font-size: 1.0625rem;
+  font-size: 1.5rem;
   font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
   color: var(--ink);
   text-decoration: none;
 }
@@ -38,71 +45,263 @@ main {
  * suivent la couleur du texte, l'ocre ne tient que le toit et le livre penché. */
 .wordmark .mark {
   flex: none;
-  /* Le dessin a sa propre marge interne : on l'aligne sur l'oeil du texte. */
-  margin-block-start: -0.08em;
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
-/* Les entrées passent à la ligne plutôt que de déborder : chacune reste
-   d'un seul tenant, c'est la rangée qui se replie. */
-nav {
+.account {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
-  font-size: 0.9375rem;
-  margin-inline-end: auto;
-}
-
-nav a {
-  white-space: nowrap;
-  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  color: var(--ink-soft);
-  text-decoration: none;
-  padding-bottom: 2px;
-  border-bottom: 2px solid transparent;
-}
-
-nav a:hover {
-  color: var(--ink);
-}
-
-/* La position courante est portée par un filet, pas par une pastille. */
-nav a.current {
-  color: var(--ink);
-  border-bottom-color: var(--pine);
+  gap: 1rem;
 }
 
 .who {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
   font-size: 0.875rem;
   color: var(--ink-soft);
 }
 
-.who button {
+.sign-out {
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  background: none;
+  border: 1px solid var(--shelf);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.sign-out:hover {
+  border-color: var(--ink-soft);
+}
+
+.avatar {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
   background: none;
   border: 0;
-  padding: 0;
-  color: var(--pine);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
+
+  > span[aria-hidden] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.125rem;
+    height: 2.125rem;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--paper-raised);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  &[aria-expanded='true'] > span[aria-hidden] {
+    box-shadow: 0 0 0 2px var(--paper-raised), 0 0 0 4px var(--pine);
+  }
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 10;
+  width: 16rem;
+  padding: 0.5rem 0;
+  background: var(--paper-raised);
+  border: 1px solid var(--shelf);
+  border-radius: 8px;
+
+  p {
+    margin: 0;
+  }
+
+  a,
+  button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 3rem;
+    padding: 0 1rem;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  button {
+    margin-top: 0.5rem;
+    border: 0;
+    border-top: 1px solid var(--shelf);
+    background: none;
+    color: var(--pine);
+    text-align: left;
+    cursor: pointer;
+  }
+}
+
+.account-name {
+  padding: 0.5rem 1rem 0.75rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--shelf);
+}
+
+.shelf-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  margin-inline-end: auto;
+  font-size: 0.9375rem;
+}
+
+.tabs a {
+  display: flex;
+  align-items: center;
+  height: 2.75rem;
+  padding: 0 1rem;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+}
+
+.tabs a:hover {
+  color: var(--ink);
+}
+
+/* L'onglet courant recouvre l'étagère : il descend de l'épaisseur du filet
+ * et prend le fond de la page, qu'il prolonge. */
+.tabs a.current {
+  position: relative;
+  margin-bottom: -3px;
+  height: calc(2.75rem + 3px);
+  padding-bottom: 3px;
+  background: var(--paper);
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.household {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 2.75rem;
+  font-size: 0.875rem;
+
+  a {
+    display: flex;
+    align-items: center;
+    height: 2.75rem;
+    padding: 0 0.625rem;
+    white-space: nowrap;
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+
+  a:hover,
+  a.current {
+    color: var(--ink);
+  }
+
+  a.current {
+    font-weight: 600;
+  }
+}
+
+/* Les sous-onglets de « Partage », sous l'étagère. La position courante est
+ * portée par un filet, pas par une pastille. */
+.subnav {
+  display: flex;
+  gap: 1.75rem;
+  overflow-x: auto;
+  font-size: 0.9375rem;
+  border-bottom: 1px solid var(--shelf);
+
+  a {
+    display: flex;
+    align-items: center;
+    height: 2.875rem;
+    white-space: nowrap;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+  }
+
+  a:hover {
+    color: var(--ink);
+  }
+
+  a.current {
+    color: var(--ink);
+    font-weight: 600;
+    border-bottom-color: var(--pine);
+  }
 }
 
 main {
   padding-bottom: 4rem;
 }
 
-@media (max-width: 34rem) {
-  .masthead-inner {
-    gap: 0.75rem;
+/* Téléphone : le groupe « Ménage » et la déconnexion passent dans le menu
+ * du compte, les onglets restent sur l'étagère. */
+@media (max-width: 48rem) {
+  .who,
+  .sign-out,
+  .household {
+    display: none;
   }
 
-  nav {
-    order: 3;
-    width: 100%;
-    margin-inline-end: 0;
+  .avatar {
+    display: flex;
+  }
+}
+
+@media (max-width: 34rem) {
+  .masthead-top {
+    padding: 0.75rem 0.75rem 0.5rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .wordmark {
+    gap: 0.625rem;
+    font-size: 1.3125rem;
+  }
+
+  .wordmark .mark {
+    width: 2.125rem;
+    height: 2.125rem;
+  }
+
+  .shelf-row {
+    padding-inline: 0.5rem;
+  }
+
+  .tabs {
+    gap: 0.125rem;
+  }
+
+  .tabs a {
+    padding: 0 0.75rem;
+  }
+
+  .subnav {
+    gap: 1.25rem;
+    padding-inline: 1rem;
+    font-size: 0.875rem;
+
+    a {
+      height: 2.75rem;
+    }
   }
 }

@@ -221,6 +221,59 @@ public sealed class MemberService(
         return await GetAsync(caller, id, cancellationToken);
     }
 
+    /// <summary>
+    /// Supprime définitivement un membre : son compte Keycloak, puis son
+    /// entrée au registre. Seul un compte déjà désactivé se supprime — la
+    /// désactivation est le geste réversible, celui-ci ne l'est pas.
+    /// <para>
+    /// Une suppression interrompue après Keycloak se rejoue : le compte a
+    /// disparu, il ne reste que l'entrée de ce ménage à retirer. Le catalogue
+    /// n'a rien à nettoyer, il ne connaît aucun compte — un emprunteur y est
+    /// un libellé copié.
+    /// </para>
+    /// </summary>
+    public async Task DeleteAsync(Caller caller, Guid id, CancellationToken cancellationToken)
+    {
+        await RequireHouseholdAsync(caller, cancellationToken);
+
+        var account = await directory.FindAsync(id, cancellationToken);
+        if (account is null)
+        {
+            // Reprise d'une suppression interrompue. Sans entrée ici non plus,
+            // le compte n'a jamais été de ce ménage, ou il est déjà supprimé :
+            // dans les deux cas, il est introuvable.
+            if (!await IsRegisteredHereAsync(caller, id, cancellationToken))
+            {
+                throw new MemberNotFoundException();
+            }
+        }
+        else
+        {
+            if (!string.Equals(account.Tenant, caller.Tenant.Value, StringComparison.Ordinal))
+            {
+                throw new MemberNotFoundException();
+            }
+
+            if (id == caller.Subject)
+            {
+                throw new MemberConflictException("soi-meme", "Vous ne pouvez pas supprimer votre propre compte.");
+            }
+
+            if (account.Enabled)
+            {
+                throw new MemberConflictException(
+                    "compte-actif",
+                    "Seul un compte désactivé peut être supprimé. Désactivez-le d'abord.");
+            }
+
+            await directory.DeleteAsync(id, cancellationToken);
+        }
+
+        await RegistryStepAsync(() => db.Members
+            .Where(m => m.Subject == id && m.HouseholdId == caller.Tenant.Value)
+            .ExecuteDeleteAsync(cancellationToken));
+    }
+
     private async Task<MemberResponse> GetAsync(Caller caller, Guid id, CancellationToken cancellationToken)
     {
         var account = await RequireMemberAsync(caller, id, cancellationToken);

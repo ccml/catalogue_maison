@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Tenants.Api.Domain;
 using Tenants.Api.Features.Members;
 using Xunit;
@@ -46,6 +47,36 @@ public sealed class MemberIsolationTests(TenantsApiFixture fixture) : IClassFixt
         Assert.True(bruno.Enabled);
         Assert.Null(bruno.Password);
         Assert.Contains(Roles.HouseholdAdmin, bruno.Roles);
+    }
+
+    [Fact]
+    public async Task Un_compte_desactive_d_un_autre_menage_ne_peut_pas_etre_supprime()
+    {
+        var (adminA, adminB) = await fixture.ResetAsync();
+        var client = fixture.ClientFor(adminA, TenantsApiFixture.HouseholdA, Roles.Adult, Roles.HouseholdAdmin);
+        fixture.Directory[adminB].Enabled = false;
+
+        var response = await client.DeleteAsync($"/members/{adminB}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.NotNull(fixture.Directory.ByUsername("bruno"));
+        await using var db = fixture.CreateDbContext();
+        Assert.True(await db.Members.AnyAsync(m => m.Subject == adminB));
+    }
+
+    [Fact]
+    public async Task La_reprise_d_une_suppression_ne_touche_pas_au_registre_d_un_autre_menage()
+    {
+        var (adminA, adminB) = await fixture.ResetAsync();
+        var client = fixture.ClientFor(adminA, TenantsApiFixture.HouseholdA, Roles.Adult, Roles.HouseholdAdmin);
+        // Compte de B disparu de Keycloak, entrée encore au registre de B.
+        await fixture.Directory.DeleteAsync(adminB, CancellationToken.None);
+
+        var response = await client.DeleteAsync($"/members/{adminB}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        await using var db = fixture.CreateDbContext();
+        Assert.True(await db.Members.AnyAsync(m => m.Subject == adminB));
     }
 
     [Fact]

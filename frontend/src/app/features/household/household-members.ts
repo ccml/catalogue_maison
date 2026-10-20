@@ -169,6 +169,26 @@ export class HouseholdMembers implements OnInit {
     }
   }
 
+  /** Seulement sur un compte désactivé : l'API refuse les autres. */
+  protected async deleteMember(member: Member): Promise<void> {
+    if (
+      !window.confirm(
+        `Supprimer définitivement le compte de ${this.fullName(member)} ? Il ne pourra pas être restauré. Le catalogue et l'historique des prêts ne sont pas touchés.`,
+      )
+    ) {
+      return;
+    }
+
+    const done = await this.run(member.id, async () => {
+      await firstValueFrom(this.api.deleteMember(member.id));
+      return true;
+    });
+    if (done !== null) {
+      this.members.update((members) => members.filter((m) => m.id !== member.id));
+      this.confirmation.set(`Le compte de ${this.fullName(member)} est supprimé.`);
+    }
+  }
+
   protected hasInconsistencies(report: Inconsistencies): boolean {
     return report.unregisteredAccounts.length > 0 || report.orphanEntries.length > 0;
   }

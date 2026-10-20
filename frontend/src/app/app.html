@@ -1,7 +1,7 @@
 <header class="masthead">
-  <div class="masthead-inner">
+  <div class="masthead-top">
     <a class="wordmark" routerLink="/">
-      <svg class="mark" viewBox="0 0 128 128" width="22" height="22" aria-hidden="true">
+      <svg class="mark" viewBox="0 0 128 128" aria-hidden="true">
         <path d="M30 54 L64 28 L98 54" fill="none" stroke="var(--ochre)" stroke-width="9"
               stroke-linecap="round" stroke-linejoin="round" />
         <rect x="38" y="62" width="15" height="36" rx="3" fill="currentColor" />
@@ -12,36 +12,77 @@
       <span>Catalogue maison</span>
     </a>
 
-    @if (auth.hasHousehold()) {
-      <nav>
-        <a routerLink="/catalogue" routerLinkActive="current" [routerLinkActiveOptions]="{ exact: true }">
-          <app-icon name="collection" />Tout le catalogue
-        </a>
-        <a routerLink="/catalogue/prets" routerLinkActive="current"><app-icon name="lent" />Prêts</a>
-        @if (auth.mayWrite()) {
-          <a routerLink="/catalogue/ajouter" routerLinkActive="current"><app-icon name="add" />Ajouter</a>
-          <a routerLink="/catalogue/export-import" routerLinkActive="current"><app-icon name="storage" />Export / import</a>
-        }
-        <a routerLink="/partages" routerLinkActive="current"><app-icon name="home" />Partagés avec nous</a>
-        @if (auth.mayAdministerHousehold()) {
-          <a routerLink="/menage" routerLinkActive="current" [routerLinkActiveOptions]="{ exact: true }"><app-icon name="settings" />Membres</a>
-          <a routerLink="/menage/partage" routerLinkActive="current"><app-icon name="collection" />Partage</a>
-        }
-      </nav>
-    } @else if (auth.mayAdministerPlatform()) {
-      <nav>
-        <a routerLink="/menages" routerLinkActive="current"><app-icon name="home" />Ménages</a>
-      </nav>
-    }
-
     @if (auth.isAuthenticated()) {
-      <div class="who">
-        <span>{{ auth.displayName() }}</span>
-        <button type="button" (click)="auth.signOut()">Se déconnecter</button>
+      <div class="account">
+        <span class="who">{{ auth.displayName() }}</span>
+        <button type="button" class="sign-out" (click)="auth.signOut()">Se déconnecter</button>
+
+        <!-- Sur téléphone, le groupe « Ménage » et la déconnexion passent dans ce menu. -->
+        <button type="button" class="avatar" aria-controls="account-menu"
+                [attr.aria-expanded]="accountOpen()" (click)="accountOpen.set(!accountOpen())">
+          <span aria-hidden="true">{{ initials() }}</span>
+          <span class="a11y-only">Menu du compte</span>
+        </button>
+        @if (accountOpen()) {
+          <div id="account-menu" class="account-menu">
+            <p class="account-name">{{ auth.displayName() }}</p>
+            @if (auth.hasHousehold() && hasHouseholdLinks()) {
+              @if (auth.mayWrite()) {
+                <a routerLink="/catalogue/export-import">Export / import</a>
+              }
+              @if (auth.mayAdministerHousehold()) {
+                <a routerLink="/menage">Membres</a>
+              }
+            }
+            <button type="button" (click)="auth.signOut()">Se déconnecter</button>
+          </div>
+        }
       </div>
     }
   </div>
+
+  @if (auth.hasHousehold()) {
+    <div class="shelf-row">
+      <nav class="tabs" aria-label="Sections">
+        <a routerLink="/catalogue" routerLinkActive="current" ariaCurrentWhenActive="page"
+           [routerLinkActiveOptions]="{ exact: true }">Tout le catalogue</a>
+        @if (auth.mayWrite()) {
+          <a routerLink="/catalogue/ajouter" routerLinkActive="current" ariaCurrentWhenActive="page">Ajouter</a>
+        }
+        <!-- L'onglet couvre trois préfixes d'URL : voir isSharingSection. -->
+        <a routerLink="/catalogue/prets" [class.current]="inSharing()"
+           [attr.aria-current]="inSharing() ? 'page' : null">Partage</a>
+      </nav>
+
+      @if (hasHouseholdLinks()) {
+        <nav class="household" aria-label="Ménage">
+          @if (auth.mayWrite()) {
+            <a routerLink="/catalogue/export-import" routerLinkActive="current" ariaCurrentWhenActive="page">Export / import</a>
+          }
+          @if (auth.mayAdministerHousehold()) {
+            <a routerLink="/menage" routerLinkActive="current" ariaCurrentWhenActive="page"
+               [routerLinkActiveOptions]="{ exact: true }">Membres</a>
+          }        </nav>
+      }
+    </div>
+  } @else if (auth.mayAdministerPlatform()) {
+    <div class="shelf-row">
+      <nav class="tabs" aria-label="Sections">
+        <a routerLink="/menages" routerLinkActive="current" ariaCurrentWhenActive="page">Ménages</a>
+      </nav>
+    </div>
+  }
 </header>
+
+@if (auth.hasHousehold() && inSharing()) {
+  <nav class="subnav" aria-label="Partage">
+    <a routerLink="/catalogue/prets" routerLinkActive="current" ariaCurrentWhenActive="page">Prêts</a>
+    <a routerLink="/partages" routerLinkActive="current" ariaCurrentWhenActive="page">Partagés avec nous</a>
+    @if (auth.mayAdministerHousehold()) {
+      <a routerLink="/menage/partage" routerLinkActive="current" ariaCurrentWhenActive="page">Gestion des partages</a>
+    }
+  </nav>
+}
 
 <main>
   <router-outlet />
