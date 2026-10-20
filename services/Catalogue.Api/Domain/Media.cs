@@ -91,6 +91,46 @@ public class Media
     }
 
     /// <summary>
+    /// Recrée une fiche venue d'un export : date d'ajout et état « prêté »
+    /// d'origine conservés, nouvel identifiant. Les règles sont celles de la
+    /// saisie, à ceci près que l'année se juge par rapport à
+    /// <paramref name="now"/> et non à la date d'ajout — une fiche corrigée
+    /// après son ajout doit pouvoir revenir telle quelle.
+    /// </summary>
+    /// <exception cref="MediaValidationException">Si la fiche est invalide.</exception>
+    public static Media Import(
+        MediaType type,
+        string? title,
+        string? creator,
+        int? year,
+        string? location,
+        bool isLent,
+        MediaSpecifics? specifics,
+        DateTimeOffset? addedAt,
+        DateTimeOffset now)
+    {
+        if (addedAt > now)
+        {
+            throw new MediaValidationException(["La date d'ajout est dans le futur."]);
+        }
+
+        var cleanTitle = Validate(type, title, year, specifics, now);
+
+        return new Media
+        {
+            Id = Guid.CreateVersion7(),
+            Type = type,
+            Title = cleanTitle,
+            Creator = Blank(creator),
+            Year = year,
+            Location = Blank(location),
+            IsLent = isLent,
+            Specifics = Canonicalize(specifics),
+            AddedAt = addedAt ?? now
+        };
+    }
+
+    /// <summary>
     /// Corrige une fiche existante, <strong>type compris</strong> : prendre
     /// un album de BD pour un livre est une erreur de saisie banale, et elle
     /// doit se réparer sans supprimer puis resaisir. Les spécificités doivent

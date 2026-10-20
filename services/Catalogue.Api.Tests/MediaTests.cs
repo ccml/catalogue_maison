@@ -90,4 +90,44 @@ public sealed class MediaTests
 
         Assert.Single(exception.Errors);
     }
+
+    [Fact]
+    public void Une_fiche_importee_garde_sa_date_d_ajout_et_son_pret()
+    {
+        var ajout = new DateTimeOffset(2019, 3, 2, 9, 30, 0, TimeSpan.Zero);
+
+        var media = Media.Import(MediaType.Film, "Alien", null, 1979, "Salon", true, null, ajout, Maintenant);
+
+        Assert.Equal(ajout, media.AddedAt);
+        Assert.True(media.IsLent);
+    }
+
+    [Fact]
+    public void A_l_import_l_annee_se_juge_par_rapport_a_aujourd_hui()
+    {
+        // Ajouté en 2019, corrigé ensuite pour une réédition de 2025 : la
+        // fiche était valide, elle doit revenir telle quelle.
+        var ajout = new DateTimeOffset(2019, 3, 2, 9, 30, 0, TimeSpan.Zero);
+
+        var media = Media.Import(MediaType.Film, "Alien", null, 2025, null, false, null, ajout, Maintenant);
+
+        Assert.Equal(2025, media.Year);
+    }
+
+    [Fact]
+    public void A_l_import_une_date_d_ajout_future_est_refusee()
+    {
+        var exception = Assert.Throws<MediaValidationException>(() => Media.Import(
+            MediaType.Film, "Alien", null, null, null, false, null, Maintenant.AddDays(1), Maintenant));
+
+        Assert.Contains("La date d'ajout est dans le futur.", exception.Errors);
+    }
+
+    [Fact]
+    public void A_l_import_une_fiche_sans_date_d_ajout_est_datee_du_jour()
+    {
+        var media = Media.Import(MediaType.Film, "Alien", null, null, null, false, null, null, Maintenant);
+
+        Assert.Equal(Maintenant, media.AddedAt);
+    }
 }

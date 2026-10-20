@@ -19,6 +19,7 @@
         </a>
         @if (auth.mayWrite()) {
           <a routerLink="/catalogue/ajouter" routerLinkActive="current"><app-icon name="add" />Ajouter</a>
+          <a routerLink="/catalogue/export-import" routerLinkActive="current"><app-icon name="storage" />Export / import</a>
         }
         @if (auth.mayAdministerHousehold()) {
           <a routerLink="/menage" routerLinkActive="current"><app-icon name="settings" />Membres</a>

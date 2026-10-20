@@ -1,0 +1,154 @@
+h1 {
+  margin: 2.5rem 0 0.5rem;
+}
+
+h2 {
+  margin: 0 0 0.5rem;
+}
+
+.lede {
+  color: var(--ink-soft);
+  margin: 0 0 2rem;
+  max-width: var(--measure);
+}
+
+section {
+  max-width: 34rem;
+  padding: 1.5rem 0 2rem;
+  border-top: 1px solid var(--shelf);
+
+  > p {
+    color: var(--ink-soft);
+    margin: 0 0 1.1rem;
+  }
+}
+
+/* Même bouton plein que l'enregistrement d'une fiche. */
+.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--pine);
+  color: var(--paper-raised);
+  border: 0;
+  border-radius: 2px;
+  padding: 0.55rem 1.3rem;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--ink);
+  }
+
+  &:disabled {
+    cursor: progress;
+    opacity: 0.7;
+  }
+}
+
+/* L'export télécharge : la flèche d'import, retournée. */
+.flip {
+  transform: rotate(180deg);
+}
+
+/* Le vrai champ fichier est masqué ; son étiquette sert de bouton, et
+   reste atteignable au clavier par le champ qu'elle contient. */
+.file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--pine);
+  border: 1px solid var(--pine);
+  border-radius: 2px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ink);
+    border-color: var(--ink);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--pine);
+    outline-offset: 2px;
+  }
+}
+
+.confirm {
+  margin-top: 1.25rem;
+
+  p {
+    margin: 0 0 0.75rem;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--pine);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
+.notice {
+  margin: 1.1rem 0 0;
+
+  p {
+    margin: 0;
+  }
+
+  ul {
+    margin: 0.5rem 0 0;
+    padding-inline-start: 1.25rem;
+  }
+}
+
+.notice-problem {
+  color: var(--ochre);
+}
+
+.notice-done {
+  color: var(--pine);
+}
+
+.report {
+  margin-top: 1.25rem;
+
+  p {
+    margin: 0 0 0.6rem;
+  }
+}
+
+/* Même registre que l'étagère du catalogue : des lignes séparées d'un filet. */
+.skipped {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--shelf);
+
+  li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--shelf);
+  }
+}
+
+.work {
+  font-family: var(--serif);
+}
+
+.why {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}

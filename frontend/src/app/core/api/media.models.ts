@@ -280,3 +280,47 @@ export interface FilmDraftResult {
   readonly draft: ScanDraft;
   readonly source: string;
 }
+
+/**
+ * Fichier d'export du catalogue, relu tel quel par l'import. Ne porte ni
+ * identifiant de fiche ni ménage : il s'importe chez n'importe quel ménage.
+ */
+export interface CatalogueExport {
+  readonly format: string;
+  readonly version: number;
+  readonly exportedAt: string;
+  readonly medias: readonly ExportedMedia[];
+}
+
+export interface ExportedMedia {
+  readonly type: MediaType;
+  readonly title: string;
+  readonly creator?: string | null;
+  readonly year?: number | null;
+  readonly location?: string | null;
+  readonly isLent: boolean;
+  readonly addedAt?: string | null;
+  readonly specifics?: MediaSpecifics | null;
+}
+
+export type DuplicateReason = 'SameIsbn' | 'SameBarcode' | 'SameTitle' | 'RepeatedInFile';
+
+/** Fiche du fichier non importée parce qu'elle fait doublon. `position` part de 1. */
+export interface SkippedMedia {
+  readonly position: number;
+  readonly type: MediaType;
+  readonly title: string;
+  readonly reason: DuplicateReason;
+}
+
+export interface ImportReport {
+  readonly imported: number;
+  readonly skipped: readonly SkippedMedia[];
+}
+
+export const duplicateReasonLabels: Readonly<Record<DuplicateReason, string>> = {
+  SameIsbn: 'même ISBN qu’une fiche du catalogue',
+  SameBarcode: 'même code-barres qu’une fiche du catalogue',
+  SameTitle: 'même type, titre et auteur qu’une fiche du catalogue',
+  RepeatedInFile: 'déjà plus haut dans le fichier',
+};

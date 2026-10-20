@@ -3,9 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { APP_SETTINGS } from '../app-settings';
 import type {
+  CatalogueExport,
   CreateMediaRequest,
   FilmDraftResult,
   FilmSearchResult,
+  ImportReport,
   MediaDetail,
   MediaQuery,
   MediaSummary,
@@ -102,5 +104,18 @@ export class CatalogueApi {
 
   setLent(id: string, isLent: boolean): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/medias/${id}/lent`, { isLent });
+  }
+
+  /** Tout le catalogue du ménage, en un fichier. */
+  exportCatalogue(): Observable<CatalogueExport> {
+    return this.http.get<CatalogueExport>(`${this.baseUrl}/medias/export`);
+  }
+
+  /**
+   * Ajoute les fiches d'un export qui ne sont pas déjà au catalogue. Tout ou
+   * rien : une fiche invalide fait refuser le fichier, en 400.
+   */
+  importCatalogue(file: CatalogueExport): Observable<ImportReport> {
+    return this.http.post<ImportReport>(`${this.baseUrl}/medias/import`, file);
   }
 }

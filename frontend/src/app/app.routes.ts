@@ -40,6 +40,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/catalogue/media-form').then((m) => m.MediaForm),
   },
   {
+    // Avant « catalogue/:id », qui prendrait sinon « export-import » pour
+    // un identifiant. Le garde n'est qu'un confort : l'API réserve export et
+    // import aux adultes.
+    path: 'catalogue/export-import',
+    title: 'Exporter ou importer',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/catalogue/catalogue-transfer').then((m) => m.CatalogueTransfer),
+  },
+  {
     path: 'catalogue/:id',
     title: 'Corriger une fiche',
     canActivate: [authGuard],

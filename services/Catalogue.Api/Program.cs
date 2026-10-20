@@ -2,6 +2,7 @@ using Catalogue.Api.Features.Films;
 using Catalogue.Api.Features.Medias;
 using Catalogue.Api.Features.Provisioning;
 using Catalogue.Api.Features.Scans;
+using Catalogue.Api.Features.Transfer;
 using Catalogue.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,7 @@ var app = builder.Build();
 
 app.UseCatalogueApi();
 app.MapMediaEndpoints();
+app.MapTransferEndpoints();
 app.MapScanEndpoints();
 app.MapFilmEndpoints();
 app.MapProvisioningEndpoints();

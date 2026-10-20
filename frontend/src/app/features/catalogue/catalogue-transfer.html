@@ -1,0 +1,92 @@
+<h1>Exporter ou importer</h1>
+<p class="lede">
+  Le catalogue du ménage tient dans un fichier JSON : de quoi en garder une copie, ou le
+  reprendre ailleurs.
+</p>
+
+<section>
+  <h2>Exporter</h2>
+  <p>
+    Toutes les fiches, avec leur emplacement, leur date d’ajout et leur état de prêt.
+  </p>
+  <button type="button" class="primary" (click)="exportCatalogue()" [disabled]="exporting()">
+    <app-icon name="import" class="flip" />
+    {{ exporting() ? 'Export…' : 'Télécharger le catalogue' }}
+  </button>
+  @if (exportDone(); as done) {
+    <p class="notice notice-done" role="status">{{ done }}</p>
+  }
+  @if (exportProblem(); as problem) {
+    <p class="notice notice-problem" role="alert">{{ problem }}</p>
+  }
+</section>
+
+<section>
+  <h2>Importer</h2>
+  <p>
+    Les fiches du fichier s’ajoutent au catalogue. Celles qui y sont déjà sont laissées de côté :
+    rien n’est supprimé ni remplacé.
+  </p>
+
+  <label class="file">
+    <app-icon name="import" />
+    Choisir un fichier d’export
+    <input #fichier class="a11y-only" type="file" accept="application/json,.json" (change)="choose(fichier)" />
+  </label>
+
+  @if (chosen(); as chosen) {
+    <div class="confirm">
+      <p>
+        <strong>{{ chosen.name }}</strong> :
+        {{ chosen.file.medias.length }}
+        {{ chosen.file.medias.length === 1 ? 'fiche' : 'fiches' }}.
+      </p>
+      <div class="actions">
+        <button type="button" class="primary" (click)="importCatalogue()" [disabled]="importing()">
+          {{ importing() ? 'Import…' : 'Importer ces fiches' }}
+        </button>
+        <button type="button" class="link" (click)="cancel()" [disabled]="importing()">Annuler</button>
+      </div>
+    </div>
+  }
+
+  @if (importProblem(); as problem) {
+    <div class="notice notice-problem" role="alert">
+      <p>{{ problem }}</p>
+      @if (importRefusals().length > 0) {
+        <ul>
+          @for (refusal of importRefusals(); track $index) {
+            <li>{{ refusal }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (report(); as report) {
+    <div class="report" role="status">
+      <p class="notice-done">
+        @if (report.imported === 0) {
+          Aucune fiche ajoutée.
+        } @else {
+          {{ report.imported }} {{ report.imported === 1 ? 'fiche ajoutée' : 'fiches ajoutées' }} au
+          catalogue.
+        }
+      </p>
+      @if (report.skipped.length > 0) {
+        <p>
+          {{ report.skipped.length }}
+          {{ report.skipped.length === 1 ? 'fiche laissée de côté' : 'fiches laissées de côté' }} :
+        </p>
+        <ul class="skipped">
+          @for (skipped of report.skipped; track skipped.position) {
+            <li>
+              <span class="work">{{ skipped.title }}</span>
+              <span class="why">{{ typeLabels[skipped.type] }}, {{ reasonLabels[skipped.reason] }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</section>
